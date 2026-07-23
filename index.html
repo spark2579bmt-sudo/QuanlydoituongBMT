@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Tra Cứu & Quản Lý Hồ Sơ Chuyên Ngành</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+    <style>
+        :root {
+            --police-green: #064e3b;
+            --police-green-light: #0f766e;
+            --police-gold: #d97706;
+            --bg-color: #f0f4f1;
+            --text-color: #1f2937;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        #auth_screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #0b1a13;
+            background-image: radial-gradient(circle, rgba(6,78,59,0.4) 0%, rgba(11,26,19,1) 100%);
+            z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px; box-sizing: border-box;
+        }
+        .auth-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px 30px; border-radius: 8px;
+            width: 100%; max-width: 400px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            border-top: 6px solid var(--police-gold);
+            text-align: center;
+        }
+        .auth-logo-svg { width: 120px; height: 120px; margin: 0 auto 15px auto; display: block; }
+        .auth-card h3 { color: var(--police-green); margin: 0 0 5px 0; text-transform: uppercase; font-size: 18px; }
+        .auth-field { margin-bottom: 20px; text-align: left; }
+        .auth-field label { font-size: 11px; color: var(--police-green); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px; }
+        .auth-input { width: 100%; padding: 12px; border: 1px solid #babcbb; border-radius: 4px; font-size: 16px; text-align: center; font-weight: bold; }
+        .auth-btn { width: 100%; padding: 14px; background-color: var(--police-green); color: white; border: none; border-radius: 4px; font-size: 15px; font-weight: bold; text-transform: uppercase; cursor: pointer; }
+        .error-msg { color: #dc2626; font-size: 13px; font-weight: 600; margin-top: 12px; display: none; }
+        
+        .container {
+            max-width: 1100px; margin: 0 auto; background: #fff;
+            padding: 30px; border-radius: 6px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border-top: 8px solid var(--police-green);
+        }
+        
+        .header-top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .header-left-unit { font-weight: 700; color: var(--police-green); font-size: 13px; text-transform: uppercase; }
+        .header-right-action { display: flex; gap: 10px; }
+        
+        .header-title { text-align: center; margin-bottom: 25px; border-bottom: 2px solid var(--police-gold); padding-bottom: 15px; }
+        .header-title h2 { color: var(--police-green); margin: 5px 0 0 0; text-transform: uppercase; font-size: 24px; }
+        
+        .change-pw-trigger, .export-excel-btn, .clear-cache-btn, .qr-scan-trigger {
+            padding: 8px 14px; background-color: transparent; color: var(--police-green);
+            border: 1px solid var(--police-green); border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;
+        }
+        .change-pw-trigger:hover, .export-excel-btn:hover { background-color: var(--police-green); color: white; }
+        .qr-scan-trigger { background-color: var(--police-gold); color: white; border-color: var(--police-gold); }
+        .qr-scan-trigger:hover { background-color: #b45309; }
+        .clear-cache-btn { color: #dc2626; border-color: #dc2626; }
+        .clear-cache-btn:hover { background-color: #dc2626; color: white; }
+
+        .form-group { margin-bottom: 20px; }
+        label { font-weight: bold; display: block; margin-bottom: 8px; color: var(--police-green); text-transform: uppercase; font-size: 13px; }
+        .upload-box { border: 2px dashed var(--police-green); padding: 35px 20px; text-align: center; border-radius: 6px; background: #f9fafb; cursor: pointer; }
+        
+        .search-container { margin-top: 10px; display: flex; gap: 10px; display: none; }
+        .search-input { flex: 1; padding: 12px 15px; border: 1px solid #babcbb; border-radius: 4px; font-size: 16px; }
+        .search-btn { padding: 12px 28px; background-color: var(--police-green); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; text-transform: uppercase; }
+        
+        .results-list { margin-top: 20px; list-style: none; padding: 0; }
+        .results-list li {
+            padding: 14px 18px; background: #ffffff; border: 1px solid #e5e7eb;
+            border-left: 4px solid var(--police-gold); margin-bottom: 10px; border-radius: 4px;
+            cursor: pointer; font-weight: 600; color: var(--police-green);
+        }
+        .results-list li:hover { background: #f4f6f5; }
+        
+        .detail-form { display: none; margin-top: 25px; padding: 25px; border: 1px solid #d1d5db; border-radius: 6px; background: #ffffff; position: relative; }
+        .form-container-flex { display: flex; gap: 25px; position: relative; z-index: 1; }
+        .photo-section { width: 180px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .photo-box { width: 160px; height: 200px; border: 2px dashed #babcbb; border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #f9fafb; }
+        .photo-box img { width: 100%; height: 100%; object-fit: cover; }
+        .photo-placeholder { color: #9ca3af; font-size: 12px; text-align: center; }
+        .photo-btn { width: 100%; padding: 8px; font-size: 12px; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; text-transform: uppercase; background-color: var(--police-green); color: white; }
+        .photo-btn.btn-danger { background-color: #dc2626; }
+
+        .form-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+        .span-2 { grid-column: span 2; }
+        .full-width { grid-column: span 3; }
+        
+        .section-separator {
+            grid-column: span 3; font-size: 12px; font-weight: bold; color: var(--police-gold);
+            background: #fdf2e9; padding: 6px 10px; border-left: 4px solid var(--police-gold);
+            margin-top: 10px; text-transform: uppercase;
+        }
+
+        .form-field { display: flex; flex-direction: column; position: relative; }
+        .form-field label { font-size: 11px; color: #4b5563; margin-bottom: 4px; font-weight: 600; }
+        .form-field input, .form-field textarea { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 4px; background: rgba(249, 250, 251, 0.85); font-size: 14px; color: #111827; }
+        .highlight-input input { background-color: rgba(254, 252, 242, 0.9); border-color: #fef08a; font-weight: 600; }
+        
+        /* CSS Nút gọi nhanh điện thoại */
+        .phone-input-container { display: flex; gap: 5px; width: 100%; }
+        .phone-input-container input { flex: 1; }
+        .call-btn {
+            display: flex; align-items: center; justify-content: center;
+            padding: 8px 12px; background-color: #10b981; color: white;
+            border: none; border-radius: 4px; text-decoration: none;
+            font-size: 14px; font-weight: bold; cursor: pointer; transition: background 0.2s;
+        }
+        .call-btn:hover { background-color: #059669; }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 10000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-box { background: white; padding: 25px 30px; border-radius: 6px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border-top: 5px solid var(--police-gold); }
+        .modal-box h4 { margin: 0 0 15px 0; color: var(--police-green); text-transform: uppercase; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-btn { flex: 1; padding: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; text-transform: uppercase; text-align: center; }
+        .btn-save { background-color: var(--police-green); color: white; }
+        .btn-cancel { background-color: #e5e7eb; color: #4b5563; }
+        
+        #qr_reader_view { width: 100%; background: #000; border-radius: 4px; overflow: hidden; }
+        .save-new-btn { background-color: var(--police-gold) !important; color: white !important; font-weight: bold; margin-top: 15px; }
+        
+        @media (max-width: 900px) {
+            .form-container-flex { flex-direction: column; align-items: center; }
+            .form-grid { grid-template-columns: 1fr 1fr; width: 100%; }
+            .full-width, .span-2, .section-separator { grid-column: span 2; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="auth_screen">
+    <div class="auth-card">
+        <svg class="auth-logo-svg" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="42" fill="#e11d48" stroke="#f59e0b" stroke-width="2"/>
+            <polygon points="50,15 59,38 84,38 64,53 72,76 50,62 28,76 36,53 16,38 41,38" fill="#f59e0b" stroke="#fff" stroke-width="0.5"/>
+        </svg>
+        <h3>Hệ Thống Quản Lý Hồ Sơ</h3>
+        <p>Yêu cầu xác thực quyền truy cập</p>
+        <div class="auth-field">
+            <label>Nhập Mã PIN</label>
+            <input type="password" id="password_input" class="auth-input" placeholder="••••••" autofocus />
+        </div>
+        <button class="auth-btn" id="login_btn">Đăng Nhập</button>
+        <div class="error-msg" id="error_msg">⚠️ Mã PIN không chính xác!</div>
+    </div>
+</div>
+
+<!-- MODAL CẢNH BÁO TRÙNG LẶP HỒ SƠ -->
+<div class="modal-overlay" id="duplicate_modal">
+    <div class="modal-box">
+        <h4 style="color:#dc2626;">⚠️ Cảnh báo trùng lặp hồ sơ</h4>
+        <p id="duplicate_msg" style="font-weight: 500; font-size: 14px; line-height: 1.5; color:#1f2937;"></p>
+        <div class="modal-actions" style="flex-direction: column; gap: 10px;">
+            <button class="modal-btn btn-save" id="dup_view_old_btn" style="width: 100%;">👉 Xem hồ sơ hiện tại</button>
+            <button class="modal-btn" id="dup_add_new_btn" style="width: 100%; background-color: var(--police-gold); color:white;">➕ Thêm mới (Cập nhật tội danh mới)</button>
+            <button class="modal-btn btn-cancel" id="dup_cancel_btn" style="width: 100%;">Hủy bỏ</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="password_modal">
+    <div class="modal-box">
+        <h4>Thay đổi mã PIN bảo mật</h4>
+        <div class="form-field" style="margin-bottom:10px;"><label>Mã PIN hiện tại</label><input type="password" id="pw_current" style="padding:8px;"></div>
+        <div class="form-field" style="margin-bottom:10px;"><label>Mã PIN mới</label><input type="password" id="pw_new" style="padding:8px;"></div>
+        <div class="form-field" style="margin-bottom:10px;"><label>Xác nhận mã PIN mới</label><input type="password" id="pw_confirm" style="padding:8px;"></div>
+        <div class="modal-actions">
+            <button class="modal-btn btn-cancel" id="modal_cancel_btn">Hủy</button>
+            <button class="modal-btn btn-save" id="modal_save_btn">Cập nhật</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="camera_modal">
+    <div class="modal-box" style="max-width: 450px;">
+        <h4>Chụp ảnh chân dung</h4>
+        <video id="camera_video" style="width:100%; background:#000;" autoplay playsinline></video>
+        <div class="modal-actions">
+            <button class="modal-btn btn-cancel" id="camera_close_btn">Đóng</button>
+            <button class="modal-btn btn-save" id="camera_capture_btn">Chụp</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="qr_modal">
+    <div class="modal-box" style="max-width: 450px;">
+        <h4>Quét QR Căn Cước Công Dân</h4>
+        <div id="qr_reader_view"></div>
+        <div class="modal-actions"><button class="modal-btn btn-cancel" id="qr_close_btn">Đóng</button></div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="header-title">
+        <div class="header-top-bar">
+            <div class="header-left-unit">⭐ Hệ Thống Quản Lý Hồ Sơ Điện Tử</div>
+            <div class="header-right-action">
+                <button class="qr-scan-trigger" id="open_qr_modal_btn" style="display:none;">🔍 Quét QR CCCD</button>
+                <button class="clear-cache-btn" id="clear_cache_btn" style="display:none;">🗑️ Xóa bộ nhớ</button>
+                <button class="export-excel-btn" id="export_excel_btn" style="display:none;">📤 Xuất Excel</button>
+                <button class="change-pw-trigger" id="open_pw_modal_btn">⚙️ Đổi PIN</button>
+            </div>
+        </div>
+        <h2>Hệ Thống Tra Cứu & Quản Lý Hồ Sơ Chuyên Ngành</h2>
+    </div>
+    
+    <div class="form-group" id="upload_section">
+        <label>Nạp tệp dữ liệu gốc (Excel)</label>
+        <div class="upload-box"><input type="file" id="excel_file" accept=".xlsx, .xls" /></div>
+    </div>
+
+    <div class="search-container" id="search_section">
+        <input type="text" id="search_input" class="search-input" placeholder="Tìm nhanh theo họ tên, tội danh, TDP..." />
+        <button class="search-btn" id="search_btn">Tra cứu</button>
+    </div>
+
+    <ul class="results-list" id="results_list"></ul>
+
+    <!-- FORM HIỂN THỊ CHI TIẾT ĐẦY ĐỦ CÁC TRƯỜNG THEO FILE VÀ BỔ SUNG -->
+    <div class="detail-form" id="detail_form">
+        <div style="display:flex; justify-content:space-between; border-bottom:2px solid var(--police-green); padding-bottom:10px; margin-bottom:20px;">
+            <h3 id="form_title_mode" style="margin:0; color:var(--police-green);">PHIẾU THÔNG TIN CHI TIẾT ĐỐI TƯỢNG</h3>
+            <button class="back-btn" id="back_btn" style="padding:6px 12px; cursor:pointer;">← Trở lại</button>
+        </div>
+        
+        <div class="form-container-flex">
+            <div class="photo-section">
+                <label>Ảnh đối tượng</label>
+                <div class="photo-box" id="photo_container"><div class="photo-placeholder">Chưa có ảnh</div></div>
+                <button class="photo-btn" id="open_camera_btn">📷 Chụp ảnh</button>
+                <button class="photo-btn btn-danger" id="delete_photo_btn" style="display:none;">❌ Xóa Ảnh</button>
+            </div>
+            
+            <div class="form-grid">
+                <div class="section-separator">Thông tin căn cước & Lai lịch</div>
+                <div class="form-field highlight-input"><label>Họ tên</label><input type="text" id="form_hoten"></div>
+                <div class="form-field"><label>Tên khác</label><input type="text" id="form_tenkhac"></div>
+                <div class="form-field"><label>Năm sinh</label><input type="text" id="form_namsinh"></div>
+                <div class="form-field"><label>Giới tính</label><input type="text" id="form_gioitinh"></div>
+                <div class="form-field"><label>Dân tộc</label><input type="text" id="form_dantoc"></div>
+                <div class="form-field"><label>Tôn giáo</label><input type="text" id="form_tongiao"></div>
+                <div class="form-field span-2"><label>Quê quán</label><input type="text" id="form_quequan"></div>
+                
+                <!-- TRƯỜNG SỐ ĐT ĐÃ ĐƯỢC TÍCH HỢP NÚT GỌI ĐIỆN NHANH -->
+                <div class="form-field">
+                    <label>Số ĐTDĐ</label>
+                    <div class="phone-input-container">
+                        <input type="text" id="form_sodt" placeholder="Nhập số điện thoại">
+                        <a href="#" id="call_trigger_btn" class="call-btn" title="Gọi trực tiếp">📞 Gọi</a>
+                    </div>
+                </div>
+                
+                <div class="form-field span-2"><label>Thường trú</label><input type="text" id="form_thuongtru"></div>
+                <div class="form-field span-2"><label>Nơi cư trú</label><input type="text" id="form_noicutru"></div>
+                <div class="form-field"><label>TDP</label><input type="text" id="form_tdp"></div>
+
+                <div class="section-separator">Quá trình tư pháp & Bản án</div>
+                <div class="form-field"><label>Ngày bắt</label><input type="text" id="form_ngaybat"></div>
+                <div class="form-field"><label>Bản án</label><input type="text" id="form_banan"></div>
+                <div class="form-field"><label>Ngày ký BA</label><input type="text" id="form_ngaykyba"></div>
+                <div class="form-field span-2"><label>Đơn vị ký BA</label><input type="text" id="form_donvikyba"></div>
+                <div class="form-field"><label>QĐ THA</label><input type="text" id="form_qdtha"></div>
+                <div class="form-field"><label>Ngày ký QĐ THA</label><input type="text" id="form_ngaykyqdtha"></div>
+                <div class="form-field span-2"><label>Đơn vị ký QĐ THA</label><input type="text" id="form_donvikyqdtha"></div>
+
+                <div class="section-separator">Chấp hành án & Quản lý địa phương</div>
+                <div class="form-field"><label>GCN CHX</label><input type="text" id="form_gcnchx"></div>
+                <div class="form-field"><label>Ngày ký GCN</label><input type="text" id="form_ngaykygcn"></div>
+                <div class="form-field span-2"><label>Đơn vị ký GCN</label><input type="text" id="form_donvikygcn"></div>
+                <div class="form-field"><label>Ngày trình diện</label><input type="text" id="form_ngaytrinhdien"></div>
+                <div class="form-field"><label>Ngày BĐ chấp hành</label><input type="text" id="form_ngaybdchaphanh"></div>
+                <div class="form-field"><label>Ngày CH xong</label><input type="text" id="form_ngaychxong"></div>
+                <div class="form-field"><label>TG đã CH</label><input type="text" id="form_tgdachah"></div>
+                <div class="form-field"><label>Thời gian còn</label><input type="text" id="form_thoigiancon"></div>
+                <div class="form-field"><label>Thử thách</label><input type="text" id="form_thuthach"></div>
+                <div class="form-field"><label>APHS</label><input type="text" id="form_aphs"></div>
+
+                <div class="section-separator">Học vấn, Tiền án & Tệ nạn</div>
+                <div class="form-field"><label>Học vấn</label><input type="text" id="form_hocvan"></div>
+                <div class="form-field"><label>Nghề nghiệp</label><input type="text" id="form_nghenghiep"></div>
+                <div class="form-field"><label>Nghề được học THA</label><input type="text" id="form_ngheduochoctha"></div>
+                <div class="form-field"><label>Tiền án</label><input type="text" id="form_tienan"></div>
+                <div class="form-field"><label>Tiền sự</label><input type="text" id="form_tiensu"></div>
+                <div class="form-field"><label>Sử dụng MT loại</label><input type="text" id="form_sudungmtloai"></div>
+
+                <div class="section-separator">Thân nhân</div>
+                <div class="form-field span-2"><label>Tên cha</label><input type="text" id="form_tencha"></div>
+                <div class="form-field"><label>NCT Cha</label><input type="text" id="form_nctcha"></div>
+                <div class="form-field span-2"><label>Tên mẹ</label><input type="text" id="form_tenme"></div>
+                <div class="form-field"><label>NCT mẹ</label><input type="text" id="form_nctme"></div>
+
+                <div class="section-separator">Thông tin chung</div>
+                <div class="form-field full-width"><label>Hình thức quản lý</label><input type="text" id="form_hinhthucquanly"></div>
+                <div class="form-field full-width highlight-input"><label>Tội danh</label><input type="text" id="form_toidanh"></div>
+                <div class="form-field full-width"><label>Án phạt</label><input type="text" id="form_anphat"></div>
+                <div class="form-field full-width"><label>Ghi chú</label><textarea id="form_ghichu"></textarea></div>
+                
+                <div class="form-field full-width" id="action_save_container" style="display:none;">
+                    <button class="photo-btn save-new-btn" id="submit_new_person_btn">💾 Lưu đối tượng vào hệ thống</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const DEFAULT_PIN = "123456";
+let globalExcelData = [];
+let currentViewingItem = null;
+let isAddingNewMode = false;
+let cameraStream = null;
+let html5QrCodeScanner = null;
+let temporaryScannedQRItem = null;
+
+const fieldMapping = {
+    'form_tenkhac': 'Tên khác',
+    'form_dantoc': 'Dân tộc',
+    'form_tongiao': 'Tôn giáo',
+    'form_quequan': 'Quê quán',
+    'form_sodt': 'Số ĐTDĐ',
+    'form_noicutru': 'Nơi cư trú',
+    'form_tdp': 'TDP',
+    'form_ngaybat': 'Ngày bắt',
+    'form_banan': 'Bản án',
+    'form_ngaykyba': 'Ngày ký BA',
+    'form_donvikyba': 'Đơn vị ký BA',
+    'form_qdtha': 'QĐ THA',
+    'form_ngaykyqdtha': 'Ngày ký QĐ THA',
+    'form_donvikyqdtha': 'Đơn vị ký QĐ THA',
+    'form_gcnchx': 'GCN CHX',
+    'form_ngaykygcn': 'Ngày ký GCN',
+    'form_donvikygcn': 'Đơn vị ký GCN',
+    'form_ngaytrinhdien': 'Ngày trình diện',
+    'form_ngaybdchaphanh': 'Ngày BĐ chấp hành',
+    'form_ngaychxong': 'Ngày CH xong',
+    'form_tgdachah': 'TG đã CH',
+    'form_thoigiancon': 'Thời gian còn',
+    'form_thuthach': 'Thử thách',
+    'form_aphs': 'APHS',
+    'form_hocvan': 'Học vấn',
+    'form_nghenghiep': 'Nghề nghiệp',
+    'form_ngheduochoctha': 'Nghề được học THA',
+    'form_tienan': 'Tiền án',
+    'form_tiensu': 'Tiền sự',
+    'form_sudungmtloai': 'Sử dụng MT loại',
+    'form_tencha': 'Tên cha',
+    'form_nctcha': 'NCT Cha',
+    'form_tenme': 'Tên mẹ',
+    'form_nctme': 'NCT mẹ',
+    'form_hinhthucquanly': 'Hình thức quản lý',
+    'form_toidanh': 'Tội danh',
+    'form_anphat': 'Án phạt',
+    'form_ghichu': 'Ghi chú'
+};
+
+function getStoredPassword() { return localStorage.getItem('app_security_pin') || DEFAULT_PIN; }
+
+function checkLogin() {
+    if (document.getElementById('password_input').value === getStoredPassword()) {
+        document.getElementById('auth_screen').style.display = 'none';
+        checkAndLoadLocalCache();
+    } else {
+        document.getElementById('error_msg').style.display = 'block';
+    }
+}
+document.getElementById('login_btn').addEventListener('click', checkLogin);
+document.getElementById('password_input').addEventListener('keyup', (e) => { if (e.key === 'Enter') checkLogin(); });
+
+document.getElementById('open_pw_modal_btn').addEventListener('click', () => { document.getElementById('password_modal').style.display = 'flex'; });
+document.getElementById('modal_cancel_btn').addEventListener('click', () => { document.getElementById('password_modal').style.display = 'none'; });
+document.getElementById('modal_save_btn').addEventListener('click', () => {
+    let current = document.getElementById('pw_current').value;
+    let newP = document.getElementById('pw_new').value;
+    let conf = document.getElementById('pw_confirm').value;
+    if (current !== getStoredPassword()) { alert("Mã PIN cũ không chính xác!"); return; }
+    if (newP !== conf || newP.trim() === "") { alert("Mã PIN mới không trùng khớp!"); return; }
+    localStorage.setItem('app_security_pin', newP);
+    alert("Đổi mã PIN thành công!");
+    document.getElementById('password_modal').style.display = 'none';
+});
+
+function saveToLocalCache() { localStorage.setItem('hoso_excel_cache', JSON.stringify(globalExcelData)); }
+function checkAndLoadLocalCache() {
+    const cachedData = localStorage.getItem('hoso_excel_cache');
+    if(cachedData) {
+        globalExcelData = JSON.parse(cachedData);
+        if(globalExcelData.length > 0) { activateMainSystem(); renderNameList(globalExcelData); }
+    }
+}
+function activateMainSystem() {
+    document.getElementById('upload_section').style.display = 'none';
+    document.getElementById('search_section').style.display = 'flex';
+    document.getElementById('export_excel_btn').style.display = 'inline-block';
+    document.getElementById('clear_cache_btn').style.display = 'inline-block';
+    document.getElementById('open_qr_modal_btn').style.display = 'inline-block';
+}
+document.getElementById('clear_cache_btn').addEventListener('click', () => {
+    if(confirm("Xóa toàn bộ bộ nhớ tạm hệ thống?")) { localStorage.removeItem('hoso_excel_cache'); location.reload(); }
+});
+
+function getColumnValue(row, columnName) { return row[columnName] !== undefined ? row[columnName] : ""; }
+
+document.getElementById('excel_file').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+        let rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+        
+        globalExcelData = rawData.map(row => {
+            let newRow = {};
+            for (let key in row) {
+                if (row[key] instanceof Date) {
+                    let d = String(row[key].getUTCDate()).padStart(2, '0');
+                    let m = String(row[key].getUTCMonth() + 1).padStart(2, '0');
+                    newRow[key] = `${d}/${m}/${row[key].getUTCFullYear()}`;
+                } else { newRow[key] = row[key]; }
+            }
+            return newRow;
+        });
+        activateMainSystem(); saveToLocalCache(); renderNameList(globalExcelData);
+    };
+    reader.readAsArrayBuffer(file);
+});
+
+function renderNameList(data) {
+    const listContainer = document.getElementById('results_list');
+    listContainer.innerHTML = "";
+    document.getElementById('detail_form').style.display = 'none';
+    listContainer.style.display = 'block';
+    if (data.length === 0) {
+        listContainer.innerHTML = "<li style='color:#dc2626; text-align:center;'>Không tìm thấy đối tượng phù hợp!</li>";
+        return;
+    }
+    data.forEach((item) => {
+        let li = document.createElement('li');
+        let txtName = getColumnValue(item, 'Họ tên') || "Không rõ họ tên";
+        let txtAlias = getColumnValue(item, 'Tên khác') ? ` (${getColumnValue(item, 'Tên khác')})` : "";
+        let txtTdp = getColumnValue(item, 'TDP') ? ` - TDP: ${getColumnValue(item, 'TDP')}` : "";
+        li.textContent = txtName + txtAlias + txtTdp;
+        li.addEventListener('click', () => showDetailForm(item, false));
+        listContainer.appendChild(li);
+    });
+}
+
+function updateCallButton(phoneNumber) {
+    const callBtn = document.getElementById('call_trigger_btn');
+    const cleanNumber = String(phoneNumber).replace(/[^0-9+]/g, '');
+    if (cleanNumber && cleanNumber.trim() !== "") {
+        callBtn.href = "tel:" + cleanNumber;
+        callBtn.style.pointerEvents = "auto";
+        callBtn.style.opacity = "1";
+    } else {
+        callBtn.href = "#";
+        callBtn.style.pointerEvents = "none";
+        callBtn.style.opacity = "0.5";
+    }
+}
+
+document.getElementById('form_sodt').addEventListener('input', function() {
+    updateCallButton(this.value);
+});
+
+function showDetailForm(item, isNewFromQR = false) {
+    currentViewingItem = item;
+    isAddingNewMode = isNewFromQR;
+    document.getElementById('results_list').style.display = 'none';
+    
+    document.getElementById('form_hoten').value = getColumnValue(item, 'Họ tên');
+    document.getElementById('form_namsinh').value = getColumnValue(item, 'Năm sinh');
+    document.getElementById('form_gioitinh').value = getColumnValue(item, 'Giới tính');
+    document.getElementById('form_thuongtru').value = getColumnValue(item, 'Thường trú');
+    
+    for (let id in fieldMapping) {
+        let excelKey = fieldMapping[id];
+        document.getElementById(id).value = getColumnValue(item, excelKey);
+    }
+
+    updateCallButton(getColumnValue(item, 'Số ĐTDĐ'));
+    renderPhoto(getColumnValue(item, 'Ảnh'));
+
+    if (isNewFromQR) {
+        document.getElementById('form_title_mode').textContent = "🆕 TIẾN HÀNH THÊM ĐỐI TƯỢNG MỚI TỪ QR";
+        document.getElementById('action_save_container').style.display = 'block';
+    } else {
+        document.getElementById('form_title_mode').textContent = "PHIẾU THÔNG TIN CHI TIẾT ĐỐI TƯỢNG";
+        document.getElementById('action_save_container').style.display = 'none';
+    }
+
+    document.getElementById('detail_form').style.display = 'block';
+}
+
+function renderPhoto(photoData) {
+    const container = document.getElementById('photo_container');
+    const deleteBtn = document.getElementById('delete_photo_btn');
+    if (photoData && photoData.trim() !== "") {
+        container.innerHTML = `<img src="${photoData}">`;
+        deleteBtn.style.display = 'block';
+    } else {
+        container.innerHTML = `<div class="photo-placeholder">Chưa có ảnh</div>`;
+        deleteBtn.style.display = 'none';
+    }
+}
+
+// Xóa ảnh đối tượng
+document.getElementById('delete_photo_btn').addEventListener('click', function() {
+    if (confirm("Bạn có chắc chắn muốn xóa ảnh đối tượng này?")) {
+        if (currentViewingItem) {
+            currentViewingItem['Ảnh'] = "";
+            saveToLocalCache();
+        }
+        renderPhoto("");
+    }
+});
+
+// Đồng bộ thay đổi dữ liệu từ các input vào bộ nhớ
+document.getElementById('form_hoten').addEventListener('input', function() {
+    if (!isAddingNewMode && currentViewingItem) { currentViewingItem['Họ tên'] = this.value; saveToLocalCache(); }
+});
+document.getElementById('form_namsinh').addEventListener('input', function() {
+    if (!isAddingNewMode && currentViewingItem) { currentViewingItem['Năm sinh'] = this.value; saveToLocalCache(); }
+});
+document.getElementById('form_gioitinh').addEventListener('input', function() {
+    if (!isAddingNewMode && currentViewingItem) { currentViewingItem['Giới tính'] = this.value; saveToLocalCache(); }
+});
+document.getElementById('form_thuongtru').addEventListener('input', function() {
+    if (!isAddingNewMode && currentViewingItem) { currentViewingItem['Thường trú'] = this.value; saveToLocalCache(); }
+});
+
+for (let id in fieldMapping) {
+    document.getElementById(id).addEventListener('input', function() {
+        if (!isAddingNewMode && currentViewingItem) {
+            let excelKey = fieldMapping[this.id];
+            currentViewingItem[excelKey] = this.value;
+            saveToLocalCache();
+        }
+    });
+}
+
+document.getElementById('back_btn').addEventListener('click', function() {
+    document.getElementById('detail_form').style.display = 'none';
+    document.getElementById('results_list').style.display = 'block';
+    currentViewingItem = null;
+    isAddingNewMode = false;
+    renderNameList(globalExcelData);
+});
+
+function handleSearch() {
+    const keyword = document.getElementById('search_input').value.toLowerCase().trim();
+    if (keyword === "") { renderNameList(globalExcelData); return; }
+    const filtered = globalExcelData.filter(row => {
+        return String(getColumnValue(row, 'Họ tên')).toLowerCase().includes(keyword) || 
+               String(getColumnValue(row, 'Tên khác')).toLowerCase().includes(keyword) || 
+               String(getColumnValue(row, 'Tội danh')).toLowerCase().includes(keyword) ||
+               String(getColumnValue(row, 'TDP')).toLowerCase().includes(keyword);
+    });
+    renderNameList(filtered);
+}
+document.getElementById('search_btn').addEventListener('click', handleSearch);
+
+// ========================================================
+// LOGIC CHỤP ẢNH TỪ CAMERA
+// ========================================================
+const cameraModal = document.getElementById('camera_modal');
+const cameraVideo = document.getElementById('camera_video');
+
+document.getElementById('open_camera_btn').addEventListener('click', async () => {
+    try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+            audio: false
+        });
+        cameraVideo.srcObject = cameraStream;
+        cameraModal.style.display = 'flex';
+    } catch (err) {
+        alert("Không thể truy cập Camera. Vui lòng kiểm tra quyền sử dụng camera trên trình duyệt!\nChi tiết: " + err.message);
+    }
+});
+
+function stopCamera() {
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
+    cameraModal.style.display = 'none';
+}
+
+document.getElementById('camera_close_btn').addEventListener('click', stopCamera);
+
+document.getElementById('camera_capture_btn').addEventListener('click', () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = cameraVideo.videoWidth || 640;
+    canvas.height = cameraVideo.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
+    
+    // Nén ảnh chất lượng 0.7 dưới dạng Base64
+    const base64Photo = canvas.toDataURL('image/jpeg', 0.7);
+    
+    if (currentViewingItem) {
+        currentViewingItem['Ảnh'] = base64Photo;
+        if (!isAddingNewMode) saveToLocalCache();
+    }
+    renderPhoto(base64Photo);
+    stopCamera();
+});
+
+// ========================================================
+// LOGIC QUÉT QR CCCD & XỬ LÝ TRÙNG LẶP
+// ========================================================
+const qrModal = document.getElementById('qr_modal');
+const duplicateModal = document.getElementById('duplicate_modal');
+
+document.getElementById('open_qr_modal_btn').addEventListener('click', () => {
+    qrModal.style.display = 'flex';
+    html5QrCodeScanner = new Html5Qrcode("qr_reader_view");
+    
+    const qrConfig = { fps: 15, qrbox: { width: 250, height: 250 } };
+    
+    html5QrCodeScanner.start(
+        { facingMode: "environment" },
+        qrConfig,
+        onQrCodeSuccess,
+        onQrCodeError
+    ).catch(err => {
+        alert("Lỗi khi mở Camera quét QR: " + err);
+        stopQrScanner();
+    });
+});
+
+function stopQrScanner() {
+    if (html5QrCodeScanner) {
+        html5QrCodeScanner.stop().then(() => {
+            html5QrCodeScanner.clear();
+            qrModal.style.display = 'none';
+        }).catch(() => {
+            qrModal.style.display = 'none';
+        });
+    } else {
+        qrModal.style.display = 'none';
+    }
+}
+
+document.getElementById('qr_close_btn').addEventListener('click', stopQrScanner);
+
+function onQrCodeError(error) {
+    // Bỏ qua log tìm kiếm khung hình liên tục
+}
+
+function parseCCCDQR(qrData) {
+    // Cấu trúc QR chuẩn CCCD: SốCCCD|SốCMNDCũ|HọTên|NgàySinh|GiớiTính|ĐịaChỉ|NgàyCấp
+    const parts = qrData.split('|');
+    if (parts.length >= 6) {
+        const rawDate = parts[3];
+        let yearStr = rawDate;
+        if (rawDate.length === 8) {
+            yearStr = rawDate.substring(4, 8);
+        }
+        return {
+            'Họ tên': parts[2],
+            'Năm sinh': yearStr,
+            'Giới tính': parts[4],
+            'Thường trú': parts[5]
+        };
+    }
+    return null;
+}
+
+function onQrCodeSuccess(decodedText, decodedResult) {
+    stopQrScanner();
+    const parsedData = parseCCCDQR(decodedText);
+    
+    if (!parsedData) {
+        alert("Mã QR không khớp với định dạng Căn cước công dân!");
+        return;
+    }
+
+    temporaryScannedQRItem = parsedData;
+
+    // Đối soát trùng lặp danh sách hiện tại theo Họ tên & Năm sinh
+    const existingIndex = globalExcelData.findIndex(item => 
+        String(getColumnValue(item, 'Họ tên')).trim().toLowerCase() === parsedData['Họ tên'].trim().toLowerCase() &&
+        String(getColumnValue(item, 'Năm sinh')).trim() === parsedData['Năm sinh'].trim()
+    );
+
+    if (existingIndex !== -1) {
+        const matchedItem = globalExcelData[existingIndex];
+        document.getElementById('duplicate_msg').innerHTML = 
+            `Đối tượng <b>${matchedItem['Họ tên']}</b> (Năm sinh: ${matchedItem['Năm sinh']}) đã tồn tại trong hệ thống.`;
+        duplicateModal.style.display = 'flex';
+        
+        document.getElementById('dup_view_old_btn').onclick = () => {
+            duplicateModal.style.display = 'none';
+            showDetailForm(matchedItem, false);
+        };
+        
+        document.getElementById('dup_add_new_btn').onclick = () => {
+            duplicateModal.style.display = 'none';
+            showDetailForm(temporaryScannedQRItem, true);
+        };
+        
+        document.getElementById('dup_cancel_btn').onclick = () => {
+            duplicateModal.style.display = 'none';
+        };
+    } else {
+        showDetailForm(temporaryScannedQRItem, true);
+    }
+}
+
+// Lưu đối tượng mới từ QR
+document.getElementById('submit_new_person_btn').addEventListener('click', () => {
+    let newItem = {
+        'Họ tên': document.getElementById('form_hoten').value,
+        'Năm sinh': document.getElementById('form_namsinh').value,
+        'Giới tính': document.getElementById('form_gioitinh').value,
+        'Thường trú': document.getElementById('form_thuongtru').value,
+        'Ảnh': currentViewingItem ? (currentViewingItem['Ảnh'] || "") : ""
+    };
+
+    for (let id in fieldMapping) {
+        let excelKey = fieldMapping[id];
+        newItem[excelKey] = document.getElementById(id).value;
+    }
+
+    globalExcelData.unshift(newItem);
+    saveToLocalCache();
+    alert("Đã thêm mới đối tượng vào danh sách thành công!");
+    
+    document.getElementById('detail_form').style.display = 'none';
+    renderNameList(globalExcelData);
+});
+
+// Xuất file Excel
+document.getElementById('export_excel_btn').addEventListener('click', () => {
+    if (globalExcelData.length === 0) {
+        alert("Chưa có dữ liệu để xuất tệp Excel!");
+        return;
+    }
+    const ws = XLSX.utils.json_to_sheet(globalExcelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "HoSoQuanLy");
+    XLSX.writeFile(wb, "Danh_Sach_Ho_So_Chuyen_Nganh.xlsx");
+});
+</script>
+
+</body>
+</html>
