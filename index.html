@@ -46,7 +46,7 @@
         .auth-card h3 { color: var(--police-green); margin: 0 0 5px 0; text-transform: uppercase; font-size: 18px; }
         .auth-field { margin-bottom: 20px; text-align: left; }
         .auth-field label { font-size: 11px; color: var(--police-green); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px; }
-        .auth-input { width: 100%; padding: 12px; border: 1px solid #babcbb; border-radius: 4px; font-size: 16px; text-align: center; font-weight: bold; }
+        .auth-input { width: 100%; padding: 12px; border: 1px solid #babcbb; border-radius: 4px; font-size: 16px; text-align: center; font-weight: bold; box-sizing: border-box;}
         .auth-btn { width: 100%; padding: 14px; background-color: var(--police-green); color: white; border: none; border-radius: 4px; font-size: 15px; font-weight: bold; text-transform: uppercase; cursor: pointer; }
         .error-msg { color: #dc2626; font-size: 13px; font-weight: 600; margin-top: 12px; display: none; }
         
@@ -114,7 +114,6 @@
         .form-field input, .form-field textarea { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 4px; background: rgba(249, 250, 251, 0.85); font-size: 14px; color: #111827; }
         .highlight-input input { background-color: rgba(254, 252, 242, 0.9); border-color: #fef08a; font-weight: 600; }
         
-        /* CSS Nút gọi nhanh điện thoại */
         .phone-input-container { display: flex; gap: 5px; width: 100%; }
         .phone-input-container input { flex: 1; }
         .call-btn {
@@ -125,7 +124,7 @@
         }
         .call-btn:hover { background-color: #059669; }
         
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 10000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 10000; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
         .modal-box { background: white; padding: 25px 30px; border-radius: 6px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border-top: 5px solid var(--police-gold); }
         .modal-box h4 { margin: 0 0 15px 0; color: var(--police-green); text-transform: uppercase; }
         .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
@@ -233,7 +232,6 @@
 
     <ul class="results-list" id="results_list"></ul>
 
-    <!-- FORM HIỂN THỊ CHI TIẾT ĐẦY ĐỦ CÁC TRƯỜNG THEO FILE VÀ BỔ SUNG -->
     <div class="detail-form" id="detail_form">
         <div style="display:flex; justify-content:space-between; border-bottom:2px solid var(--police-green); padding-bottom:10px; margin-bottom:20px;">
             <h3 id="form_title_mode" style="margin:0; color:var(--police-green);">PHIẾU THÔNG TIN CHI TIẾT ĐỐI TƯỢNG</h3>
@@ -258,7 +256,6 @@
                 <div class="form-field"><label>Tôn giáo</label><input type="text" id="form_tongiao"></div>
                 <div class="form-field span-2"><label>Quê quán</label><input type="text" id="form_quequan"></div>
                 
-                <!-- TRƯỜNG SỐ ĐT ĐÃ ĐƯỢC TÍCH HỢP NÚT GỌI ĐIỆN NHANH -->
                 <div class="form-field">
                     <label>Số ĐTDĐ</label>
                     <div class="phone-input-container">
@@ -521,7 +518,6 @@ function renderPhoto(photoData) {
     }
 }
 
-// Xóa ảnh đối tượng
 document.getElementById('delete_photo_btn').addEventListener('click', function() {
     if (confirm("Bạn có chắc chắn muốn xóa ảnh đối tượng này?")) {
         if (currentViewingItem) {
@@ -532,7 +528,6 @@ document.getElementById('delete_photo_btn').addEventListener('click', function()
     }
 });
 
-// Đồng bộ thay đổi dữ liệu từ các input vào bộ nhớ
 document.getElementById('form_hoten').addEventListener('input', function() {
     if (!isAddingNewMode && currentViewingItem) { currentViewingItem['Họ tên'] = this.value; saveToLocalCache(); }
 });
@@ -577,26 +572,23 @@ function handleSearch() {
 }
 document.getElementById('search_btn').addEventListener('click', handleSearch);
 
-// ========================================================
-// LOGIC CHỤP ẢNH TỪ CAMERA
-// ========================================================
+// CAMERA CHỤP ẢNH
 const cameraModal = document.getElementById('camera_modal');
 const cameraVideo = document.getElementById('camera_video');
 
 document.getElementById('open_camera_btn').addEventListener('click', async () => {
     try {
-        cameraStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment" },
-            audio: false
+        cameraStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } 
         });
         cameraVideo.srcObject = cameraStream;
         cameraModal.style.display = 'flex';
     } catch (err) {
-        alert("Không thể truy cập Camera. Vui lòng kiểm tra quyền sử dụng camera trên trình duyệt!\nChi tiết: " + err.message);
+        alert("Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập thiết bị hoặc chạy trang qua HTTP/HTTPS!");
     }
 });
 
-function stopCamera() {
+function closeCamera() {
     if (cameraStream) {
         cameraStream.getTracks().forEach(track => track.stop());
         cameraStream = null;
@@ -604,7 +596,7 @@ function stopCamera() {
     cameraModal.style.display = 'none';
 }
 
-document.getElementById('camera_close_btn').addEventListener('click', stopCamera);
+document.getElementById('camera_close_btn').addEventListener('click', closeCamera);
 
 document.getElementById('camera_capture_btn').addEventListener('click', () => {
     const canvas = document.createElement('canvas');
@@ -613,37 +605,41 @@ document.getElementById('camera_capture_btn').addEventListener('click', () => {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
     
-    // Nén ảnh chất lượng 0.7 dưới dạng Base64
-    const base64Photo = canvas.toDataURL('image/jpeg', 0.7);
+    const base64Image = canvas.toDataURL('image/jpeg', 0.85);
+    renderPhoto(base64Image);
     
     if (currentViewingItem) {
-        currentViewingItem['Ảnh'] = base64Photo;
-        if (!isAddingNewMode) saveToLocalCache();
+        currentViewingItem['Ảnh'] = base64Image;
+        saveToLocalCache();
     }
-    renderPhoto(base64Photo);
-    stopCamera();
+    closeCamera();
 });
 
-// ========================================================
-// LOGIC QUÉT QR CCCD & XỬ LÝ TRÙNG LẶP
-// ========================================================
+// QUÉT QR CCCD
 const qrModal = document.getElementById('qr_modal');
-const duplicateModal = document.getElementById('duplicate_modal');
 
 document.getElementById('open_qr_modal_btn').addEventListener('click', () => {
     qrModal.style.display = 'flex';
-    html5QrCodeScanner = new Html5Qrcode("qr_reader_view");
     
-    const qrConfig = { fps: 15, qrbox: { width: 250, height: 250 } };
+    html5QrCodeScanner = new Html5Qrcode("qr_reader_view");
+    const qrConfig = { 
+        fps: 15, 
+        qrbox: { width: 250, height: 250 },
+        videoConstraints: {
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            facingMode: "environment"
+        }
+    };
     
     html5QrCodeScanner.start(
-        { facingMode: "environment" },
-        qrConfig,
-        onQrCodeSuccess,
-        onQrCodeError
+        { facingMode: "environment" }, 
+        qrConfig, 
+        onQrCodeScanned, 
+        () => {}
     ).catch(err => {
-        alert("Lỗi khi mở Camera quét QR: " + err);
-        stopQrScanner();
+        alert("Không thể mở camera quét QR: " + err);
+        qrModal.style.display = 'none';
     });
 });
 
@@ -662,105 +658,153 @@ function stopQrScanner() {
 
 document.getElementById('qr_close_btn').addEventListener('click', stopQrScanner);
 
-function onQrCodeError(error) {
-    // Bỏ qua log tìm kiếm khung hình liên tục
-}
-
-function parseCCCDQR(qrData) {
-    // Cấu trúc QR chuẩn CCCD: SốCCCD|SốCMNDCũ|HọTên|NgàySinh|GiớiTính|ĐịaChỉ|NgàyCấp
-    const parts = qrData.split('|');
+function parseCCCDData(qrText) {
+    const parts = qrText.split('|');
     if (parts.length >= 6) {
-        const rawDate = parts[3];
-        let yearStr = rawDate;
+        const rawDate = parts[3] || "";
+        let formattedNamSinh = rawDate;
         if (rawDate.length === 8) {
-            yearStr = rawDate.substring(4, 8);
+            formattedNamSinh = `${rawDate.substring(0,2)}/${rawDate.substring(2,4)}/${rawDate.substring(4,8)}`;
         }
+        
         return {
-            'Họ tên': parts[2],
-            'Năm sinh': yearStr,
-            'Giới tính': parts[4],
-            'Thường trú': parts[5]
+            'Họ tên': parts[2] || '',
+            'Năm sinh': formattedNamSinh,
+            'Giới tính': parts[4] || '',
+            'Thường trú': parts[5] || '',
+            'Ghi chú': `Số CCCD: ${parts[0]}${parts[1] ? ' - CMND cũ: ' + parts[1] : ''}`
         };
     }
     return null;
 }
 
-function onQrCodeSuccess(decodedText, decodedResult) {
+function onQrCodeScanned(decodedText) {
     stopQrScanner();
-    const parsedData = parseCCCDQR(decodedText);
+    const parsedData = parseCCCDData(decodedText);
     
     if (!parsedData) {
-        alert("Mã QR không khớp với định dạng Căn cước công dân!");
+        alert("Mã QR không đúng định dạng CCCD Việt Nam!");
         return;
     }
 
     temporaryScannedQRItem = parsedData;
 
-    // Đối soát trùng lặp danh sách hiện tại theo Họ tên & Năm sinh
     const existingIndex = globalExcelData.findIndex(item => 
         String(getColumnValue(item, 'Họ tên')).trim().toLowerCase() === parsedData['Họ tên'].trim().toLowerCase() &&
         String(getColumnValue(item, 'Năm sinh')).trim() === parsedData['Năm sinh'].trim()
     );
 
     if (existingIndex !== -1) {
-        const matchedItem = globalExcelData[existingIndex];
+        const dupItem = globalExcelData[existingIndex];
         document.getElementById('duplicate_msg').innerHTML = 
-            `Đối tượng <b>${matchedItem['Họ tên']}</b> (Năm sinh: ${matchedItem['Năm sinh']}) đã tồn tại trong hệ thống.`;
-        duplicateModal.style.display = 'flex';
+            `Đã tồn tại đối tượng <b>${dupItem['Họ tên']}</b> (${dupItem['Năm sinh']}) trong hệ thống!<br>` +
+            `Tội danh cũ: <i>${dupItem['Tội danh'] || 'Chưa cập nhật'}</i>`;
+        
+        document.getElementById('duplicate_modal').style.display = 'flex';
         
         document.getElementById('dup_view_old_btn').onclick = () => {
-            duplicateModal.style.display = 'none';
-            showDetailForm(matchedItem, false);
+            document.getElementById('duplicate_modal').style.display = 'none';
+            showDetailForm(dupItem, false);
         };
         
         document.getElementById('dup_add_new_btn').onclick = () => {
-            duplicateModal.style.display = 'none';
-            showDetailForm(temporaryScannedQRItem, true);
+            document.getElementById('duplicate_modal').style.display = 'none';
+            showDetailForm(parsedData, true);
         };
         
         document.getElementById('dup_cancel_btn').onclick = () => {
-            duplicateModal.style.display = 'none';
+            document.getElementById('duplicate_modal').style.display = 'none';
         };
     } else {
-        showDetailForm(temporaryScannedQRItem, true);
+        showDetailForm(parsedData, true);
     }
 }
 
-// Lưu đối tượng mới từ QR
+// LƯU ĐỐI TƯỢNG MỚI
 document.getElementById('submit_new_person_btn').addEventListener('click', () => {
     let newItem = {
         'Họ tên': document.getElementById('form_hoten').value,
+        'Tên khác': document.getElementById('form_tenkhac').value,
         'Năm sinh': document.getElementById('form_namsinh').value,
         'Giới tính': document.getElementById('form_gioitinh').value,
+        'Dân tộc': document.getElementById('form_dantoc').value,
+        'Tôn giáo': document.getElementById('form_tongiao').value,
+        'Quê quán': document.getElementById('form_quequan').value,
+        'Số ĐTDĐ': document.getElementById('form_sodt').value,
         'Thường trú': document.getElementById('form_thuongtru').value,
-        'Ảnh': currentViewingItem ? (currentViewingItem['Ảnh'] || "") : ""
+        'Nơi cư trú': document.getElementById('form_noicutru').value,
+        'TDP': document.getElementById('form_tdp').value,
+        'Ngày bắt': document.getElementById('form_ngaybat').value,
+        'Bản án': document.getElementById('form_banan').value,
+        'Ngày ký BA': document.getElementById('form_ngaykyba').value,
+        'Đơn vị ký BA': document.getElementById('form_donvikyba').value,
+        'QĐ THA': document.getElementById('form_qdtha').value,
+        'Ngày ký QĐ THA': document.getElementById('form_ngaykyqdtha').value,
+        'Đơn vị ký QĐ THA': document.getElementById('form_donvikyqdtha').value,
+        'GCN CHX': document.getElementById('form_gcnchx').value,
+        'Ngày ký GCN': document.getElementById('form_ngaykygcn').value,
+        'Đơn vị ký GCN': document.getElementById('form_donvikygcn').value,
+        'Ngày trình diện': document.getElementById('form_ngaytrinhdien').value,
+        'Ngày BĐ chấp hành': document.getElementById('form_ngaybdchaphanh').value,
+        'Ngày CH xong': document.getElementById('form_ngaychxong').value,
+        'TG đã CH': document.getElementById('form_tgdachah').value,
+        'Thời gian còn': document.getElementById('form_thoigiancon').value,
+        'Thử thách': document.getElementById('form_thuthach').value,
+        'APHS': document.getElementById('form_aphs').value,
+        'Học vấn': document.getElementById('form_hocvan').value,
+        'Nghề nghiệp': document.getElementById('form_nghenghiep').value,
+        'Nghề được học THA': document.getElementById('form_ngheduochoctha').value,
+        'Tiền án': document.getElementById('form_tienan').value,
+        'Tiền sự': document.getElementById('form_tiensu').value,
+        'Sử dụng MT loại': document.getElementById('form_sudungmtloai').value,
+        'Tên cha': document.getElementById('form_tencha').value,
+        'NCT Cha': document.getElementById('form_nctcha').value,
+        'Tên mẹ': document.getElementById('form_tenme').value,
+        'NCT mẹ': document.getElementById('form_nctme').value,
+        'Hình thức quản lý': document.getElementById('form_hinhthucquanly').value,
+        'Tội danh': document.getElementById('form_toidanh').value,
+        'Án phạt': document.getElementById('form_anphat').value,
+        'Ghi chú': document.getElementById('form_ghichu').value,
+        'Ảnh': currentViewingItem ? currentViewingItem['Ảnh'] || '' : ''
     };
 
-    for (let id in fieldMapping) {
-        let excelKey = fieldMapping[id];
-        newItem[excelKey] = document.getElementById(id).value;
+    if (!newItem['Họ tên'].trim()) {
+        alert("Vui lòng nhập Họ tên đối tượng!");
+        return;
     }
 
     globalExcelData.unshift(newItem);
     saveToLocalCache();
-    alert("Đã thêm mới đối tượng vào danh sách thành công!");
+    alert("Thêm thành công đối tượng vào hệ thống!");
     
     document.getElementById('detail_form').style.display = 'none';
+    document.getElementById('results_list').style.display = 'block';
+    isAddingNewMode = false;
+    currentViewingItem = null;
     renderNameList(globalExcelData);
 });
 
-// Xuất file Excel
+// XUẤT EXCEL
 document.getElementById('export_excel_btn').addEventListener('click', () => {
     if (globalExcelData.length === 0) {
-        alert("Chưa có dữ liệu để xuất tệp Excel!");
+        alert("Không có dữ liệu để xuất Excel!");
         return;
     }
-    const ws = XLSX.utils.json_to_sheet(globalExcelData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "HoSoQuanLy");
-    XLSX.writeFile(wb, "Danh_Sach_Ho_So_Chuyen_Nganh.xlsx");
+    
+    const exportData = globalExcelData.map(item => {
+        let clone = { ...item };
+        delete clone['Ảnh'];
+        return clone;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "DanhSachDoiTuong");
+
+    const today = new Date();
+    const dateStr = `${today.getDate()}-${today.getMonth()+1}-${today.getFullYear()}`;
+    XLSX.writeFile(workbook, `Danh_Sach_Quan_Ly_Ho_So_${dateStr}.xlsx`);
 });
 </script>
-
 </body>
 </html>
