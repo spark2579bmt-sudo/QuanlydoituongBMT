@@ -15,28 +15,7 @@
     <style>
         * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; margin: 0; padding: 15px; background: #f4f6f9; text-align: center; }
-        
-        /* HEADER & LOGO BMT CÓ NGÔI SAO 5 CÁNH */
-        .logo-header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        .star-icon {
-            width: 32px;
-            height: 32px;
-            fill: #ffd700; /* Màu vàng ngôi sao */
-            filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.2));
-        }
-        h2 { 
-            color: #1a3d5d; 
-            margin: 0; 
-            font-size: 20px; 
-            text-transform: uppercase; 
-            letter-spacing: 0.5px;
-        }
+        h2 { color: #1a3d5d; margin-bottom: 15px; }
         
         /* Frame Camera */
         #video-container { position: relative; max-width: 400px; margin: 0 auto; }
@@ -64,20 +43,7 @@
 </head>
 <body>
 
-    <!-- KHU VỰC LOGO CÓ NGÔI SAO 5 CÁNH -->
-    <div class="logo-header">
-        <!-- Ngôi sao bên trái -->
-        <svg class="star-icon" viewBox="0 0 24 24">
-            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-        </svg>
-        
-        <h2>QUẢN LÝ ĐỐI TƯỢNG BMT</h2>
-        
-        <!-- Ngôi sao bên phải -->
-        <svg class="star-icon" viewBox="0 0 24 24">
-            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-        </svg>
-    </div>
+    <h2>QUẢN LÝ ĐỐI TƯỢNG BMT - QUÉT CCCD</h2>
     
     <!-- Vùng Camera -->
     <div id="video-container">
@@ -276,6 +242,7 @@
             const worksheet = XLSX.utils.json_to_sheet(danhSachXuatExcel);
             const range = XLSX.utils.decode_range(worksheet['!ref']);
             
+            // Định dạng cột Ngày sinh (C) và Ngày cấp (G) dưới dạng Text thuần túy để tránh lỗi đinh dạng Excel
             for (let R = range.s.r + 1; R <= range.e.r; ++R) {
                 ['C', 'G'].forEach(col => {
                     let cell_ref = col + (R + 1);
