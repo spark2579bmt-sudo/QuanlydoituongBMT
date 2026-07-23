@@ -329,6 +329,8 @@ let isAddingNewMode = false;
 let cameraStream = null;
 let html5QrCodeScanner = null;
 let isTorchOn = false;
+let tempQrObject = null;
+let existingDuplicateItem = null;
 
 const fieldMapping = {
     'form_tenkhac': 'Tên khác',
@@ -582,13 +584,11 @@ const cameraVideo = document.getElementById('camera_video');
 
 document.getElementById('open_camera_btn').addEventListener('click', async () => {
     try {
-        cameraStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } 
-        });
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
         cameraVideo.srcObject = cameraStream;
         cameraModal.style.display = 'flex';
     } catch (err) {
-        alert("Không thể truy cập camera. Vui lòng chạy trang web trên HTTPS hoặc Server nội bộ!");
+        alert("Không thể mở máy ảnh. Vui lòng cấp quyền truy cập camera!");
     }
 });
 
@@ -608,241 +608,132 @@ document.getElementById('camera_capture_btn').addEventListener('click', () => {
     canvas.height = cameraVideo.videoHeight || 480;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
-    
-    const base64Image = canvas.toDataURL('image/jpeg', 0.85);
-    renderPhoto(base64Image);
+    const photoData = canvas.toDataURL('image/jpeg', 0.8);
     
     if (currentViewingItem) {
-        currentViewingItem['Ảnh'] = base64Image;
-        saveToLocalCache();
+        currentViewingItem['Ảnh'] = photoData;
+        if(!isAddingNewMode) saveToLocalCache();
     }
+    renderPhoto(photoData);
     closeCamera();
 });
 
-// ========================================================
-// BỘ QUÉT QR CHUYÊN DỤNG THẺ CCCD BẢN CHÍNH (Đã tối ưu)
-// ========================================================
-const qrModal = document.getElementById('qr_modal');
-const torchBtn = document.getElementById('torch_btn');
-
-document.getElementById('open_qr_modal_btn').addEventListener('click', () => {
-    qrModal.style.display = 'flex';
-    isTorchOn = false;
-    
-    html5QrCodeScanner = new Html5Qrcode("qr_reader_view");
-    
-    // Cấu hình linh hoạt khung hình cho mã QR dầy CCCD
-    const qrConfig = { 
-        fps: 20, 
-        qrbox: function(viewfinderWidth, viewfinderHeight) {
-            let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            return { width: Math.floor(minEdge * 0.82), height: Math.floor(minEdge * 0.82) };
-        },
-        aspectRatio: 1.0,
-        experimentalFeatures: {
-            useBarCodeDetectorIfSupported: true
-        }
-    };
-    
-    html5QrCodeScanner.start(
-        { facingMode: "environment" }, 
-        qrConfig, 
-        onQrCodeScanned, 
-        () => {}
-    ).then(() => {
-        // Tự động bật chế độ lấy nét liên tục (Continuous Focus)
-        try {
-            const track = html5QrCodeScanner.getRunningTrack();
-            const capabilities = track.getCapabilities ? track.getCapabilities() : {};
-            
-            if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
-                track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
-            }
-            
-            if (capabilities.torch) {
-                torchBtn.style.display = 'inline-block';
-            }
-        } catch(e) {}
-    }).catch(err => {
-        alert("Không thể mở camera quét QR: " + err);
-        qrModal.style.display = 'none';
-    });
-});
-
-torchBtn.addEventListener('click', () => {
-    if (html5QrCodeScanner) {
-        const track = html5QrCodeScanner.getRunningTrack();
-        isTorchOn = !isTorchOn;
-        track.applyConstraints({ advanced: [{ torch: isTorchOn }] });
-        torchBtn.textContent = isTorchOn ? "💡 Tắt Đèn Flash" : "💡 Bật Đèn Flash";
-    }
-});
-
-function stopQrScanner() {
-    if (html5QrCodeScanner) {
-        html5QrCodeScanner.stop().then(() => {
-            html5QrCodeScanner.clear();
-            qrModal.style.display = 'none';
-            torchBtn.style.display = 'none';
-        }).catch(() => {
-            qrModal.style.display = 'none';
-            torchBtn.style.display = 'none';
-        });
-    } else {
-        qrModal.style.display = 'none';
-        torchBtn.style.display = 'none';
-    }
-}
-
-document.getElementById('qr_close_btn').addEventListener('click', stopQrScanner);
-
-// Bóc tách UTF-8 dữ liệu thẻ CCCD Việt Nam
-function parseCCCDData(qrText) {
-    if (!qrText) return null;
-    const parts = qrText.split('|');
-    
-    if (parts.length >= 6) {
-        const rawDate = parts[3] ? parts[3].trim() : "";
-        let formattedNamSinh = rawDate;
-        if (rawDate.length === 8) {
-            formattedNamSinh = `${rawDate.substring(0,2)}/${rawDate.substring(2,4)}/${rawDate.substring(4,8)}`;
-        }
-        
-        return {
-            'Họ tên': parts[2] ? parts[2].trim() : '',
-            'Năm sinh': formattedNamSinh,
-            'Giới tính': parts[4] ? parts[4].trim() : '',
-            'Thường trú': parts[5] ? parts[5].trim() : '',
-            'Ghi chú': `Số CCCD: ${parts[0]}${parts[1] ? ' - CMND cũ: ' + parts[1] : ''}`
-        };
-    }
-    return null;
-}
-
-function onQrCodeScanned(decodedText) {
-    stopQrScanner();
-    const parsedData = parseCCCDData(decodedText);
-    
-    if (!parsedData) {
-        alert("Mã QR không khớp chuẩn định dạng CCCD gắn chip!");
-        return;
-    }
-
-    const existingIndex = globalExcelData.findIndex(item => 
-        String(getColumnValue(item, 'Họ tên')).trim().toLowerCase() === parsedData['Họ tên'].trim().toLowerCase() &&
-        String(getColumnValue(item, 'Năm sinh')).trim() === parsedData['Năm sinh'].trim()
-    );
-
-    if (existingIndex !== -1) {
-        const dupItem = globalExcelData[existingIndex];
-        document.getElementById('duplicate_msg').innerHTML = 
-            `Đã tồn tại đối tượng <b>${dupItem['Họ tên']}</b> (${dupItem['Năm sinh']}) trong hệ thống!<br>` +
-            `Tội danh cũ: <i>${dupItem['Tội danh'] || 'Chưa cập nhật'}</i>`;
-        
-        document.getElementById('duplicate_modal').style.display = 'flex';
-        
-        document.getElementById('dup_view_old_btn').onclick = () => {
-            document.getElementById('duplicate_modal').style.display = 'none';
-            showDetailForm(dupItem, false);
-        };
-        
-        document.getElementById('dup_add_new_btn').onclick = () => {
-            document.getElementById('duplicate_modal').style.display = 'none';
-            showDetailForm(parsedData, true);
-        };
-        
-        document.getElementById('dup_cancel_btn').onclick = () => {
-            document.getElementById('duplicate_modal').style.display = 'none';
-        };
-    } else {
-        showDetailForm(parsedData, true);
-    }
-}
-
-// LƯU ĐỐI TƯỢNG MỚI
+// LƯU ĐỐI TƯỢNG MỚI TỪ QR
 document.getElementById('submit_new_person_btn').addEventListener('click', () => {
-    let newItem = {
-        'Họ tên': document.getElementById('form_hoten').value,
-        'Tên khác': document.getElementById('form_tenkhac').value,
-        'Năm sinh': document.getElementById('form_namsinh').value,
-        'Giới tính': document.getElementById('form_gioitinh').value,
-        'Dân tộc': document.getElementById('form_dantoc').value,
-        'Tôn giáo': document.getElementById('form_tongiao').value,
-        'Quê quán': document.getElementById('form_quequan').value,
-        'Số ĐTDĐ': document.getElementById('form_sodt').value,
-        'Thường trú': document.getElementById('form_thuongtru').value,
-        'Nơi cư trú': document.getElementById('form_noicutru').value,
-        'TDP': document.getElementById('form_tdp').value,
-        'Ngày bắt': document.getElementById('form_ngaybat').value,
-        'Bản án': document.getElementById('form_banan').value,
-        'Ngày ký BA': document.getElementById('form_ngaykyba').value,
-        'Đơn vị ký BA': document.getElementById('form_donvikyba').value,
-        'QĐ THA': document.getElementById('form_qdtha').value,
-        'Ngày ký QĐ THA': document.getElementById('form_ngaykyqdtha').value,
-        'Đơn vị ký QĐ THA': document.getElementById('form_donvikyqdtha').value,
-        'GCN CHX': document.getElementById('form_gcnchx').value,
-        'Ngày ký GCN': document.getElementById('form_ngaykygcn').value,
-        'Đơn vị ký GCN': document.getElementById('form_donvikygcn').value,
-        'Ngày trình diện': document.getElementById('form_ngaytrinhdien').value,
-        'Ngày BĐ chấp hành': document.getElementById('form_ngaybdchaphanh').value,
-        'Ngày CH xong': document.getElementById('form_ngaychxong').value,
-        'TG đã CH': document.getElementById('form_tgdachah').value,
-        'Thời gian còn': document.getElementById('form_thoigiancon').value,
-        'Thử thách': document.getElementById('form_thuthach').value,
-        'APHS': document.getElementById('form_aphs').value,
-        'Học vấn': document.getElementById('form_hocvan').value,
-        'Nghề nghiệp': document.getElementById('form_nghenghiep').value,
-        'Nghề được học THA': document.getElementById('form_ngheduochoctha').value,
-        'Tiền án': document.getElementById('form_tienan').value,
-        'Tiền sự': document.getElementById('form_tiensu').value,
-        'Sử dụng MT loại': document.getElementById('form_sudungmtloai').value,
-        'Tên cha': document.getElementById('form_tencha').value,
-        'NCT Cha': document.getElementById('form_nctcha').value,
-        'Tên mẹ': document.getElementById('form_tenme').value,
-        'NCT mẹ': document.getElementById('form_nctme').value,
-        'Hình thức quản lý': document.getElementById('form_hinhthucquanly').value,
-        'Tội danh': document.getElementById('form_toidanh').value,
-        'Án phạt': document.getElementById('form_anphat').value,
-        'Ghi chú': document.getElementById('form_ghichu').value,
-        'Ảnh': currentViewingItem ? currentViewingItem['Ảnh'] || '' : ''
-    };
-
-    if (!newItem['Họ tên'].trim()) {
-        alert("Vui lòng nhập Họ tên đối tượng!");
-        return;
+    let newItem = { ...currentViewingItem };
+    newItem['Họ tên'] = document.getElementById('form_hoten').value;
+    newItem['Năm sinh'] = document.getElementById('form_namsinh').value;
+    newItem['Giới tính'] = document.getElementById('form_gioitinh').value;
+    newItem['Thường trú'] = document.getElementById('form_thuongtru').value;
+    
+    for (let id in fieldMapping) {
+        let excelKey = fieldMapping[id];
+        newItem[excelKey] = document.getElementById(id).value;
     }
 
     globalExcelData.unshift(newItem);
     saveToLocalCache();
-    alert("Thêm thành công đối tượng vào hệ thống!");
+    alert("Đã thêm mới đối tượng thành công!");
     
-    document.getElementById('detail_form').style.display = 'none';
-    document.getElementById('results_list').style.display = 'block';
     isAddingNewMode = false;
-    currentViewingItem = null;
-    renderNameList(globalExcelData);
+    currentViewingItem = newItem;
+    document.getElementById('form_title_mode').textContent = "PHIẾU THÔNG TIN CHI TIẾT ĐỐI TƯỢNG";
+    document.getElementById('action_save_container').style.display = 'none';
+});
+
+// QUÉT QR CCCD & XỬ LÝ DỮ LIỆU
+const qrModal = document.getElementById('qr_modal');
+
+document.getElementById('open_qr_modal_btn').addEventListener('click', () => {
+    qrModal.style.display = 'flex';
+    html5QrCodeScanner = new Html5Qrcode("qr_reader_view");
+    
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    html5QrCodeScanner.start({ facingMode: "environment" }, config, onScanSuccess)
+    .catch(err => alert("Không thể khởi chạy bộ quét QR: " + err));
+});
+
+function closeQrModal() {
+    if (html5QrCodeScanner) {
+        html5QrCodeScanner.stop().then(() => {
+            html5QrCodeScanner.clear();
+            qrModal.style.display = 'none';
+        }).catch(() => { qrModal.style.display = 'none'; });
+    } else {
+        qrModal.style.display = 'none';
+    }
+}
+document.getElementById('qr_close_btn').addEventListener('click', closeQrModal);
+
+function parseVietnameseDate(rawDate) {
+    if (!rawDate || rawDate.length !== 8) return rawDate;
+    return `${rawDate.substring(0,2)}/${rawDate.substring(2,4)}/${rawDate.substring(4,8)}`;
+}
+
+function onScanSuccess(decodedText) {
+    closeQrModal();
+    // Mã QR CCCD phân tách bởi dấu pipe "|"
+    // Format: CCCD|CMND|Họ_tên|Ngày_sinh|Giới_tính|Địa_chỉ|Ngày_cấp
+    const parts = decodedText.split('|');
+    if (parts.length < 5) {
+        alert("Mã QR không đúng định dạng Căn cước công dân!");
+        return;
+    }
+
+    const cccdNum = parts[0] ? parts[0].trim() : "";
+    const name = parts[2] ? parts[2].trim() : "";
+    const dob = parseVietnameseDate(parts[3] ? parts[3].trim() : "");
+    const gender = parts[4] ? parts[4].trim() : "";
+    const address = parts[5] ? parts[5].trim() : "";
+
+    tempQrObject = {
+        'Họ tên': name,
+        'Năm sinh': dob,
+        'Giới tính': gender,
+        'Thường trú': address,
+        'Nơi cư trú': address,
+        'Ghi chú': cccdNum ? `Mã CCCD: ${cccdNum}` : ""
+    };
+
+    // Kiểm tra trùng lặp theo Họ tên & Năm sinh
+    existingDuplicateItem = globalExcelData.find(item => {
+        let exName = String(getColumnValue(item, 'Họ tên')).toLowerCase().trim();
+        let exDob = String(getColumnValue(item, 'Năm sinh')).trim();
+        return exName === name.toLowerCase() && (exDob === dob || exDob.endsWith(dob.slice(-4)));
+    });
+
+    if (existingDuplicateItem) {
+        document.getElementById('duplicate_msg').innerHTML = `Đối tượng <b>${name}</b> (${dob}) đã tồn tại trên hệ thống!<br>Bạn muốn chuyển tới hồ sơ cũ hay tạo lượt lưu mới?`;
+        document.getElementById('duplicate_modal').style.display = 'flex';
+    } else {
+        showDetailForm(tempQrObject, true);
+    }
+}
+
+document.getElementById('dup_view_old_btn').addEventListener('click', () => {
+    document.getElementById('duplicate_modal').style.display = 'none';
+    showDetailForm(existingDuplicateItem, false);
+});
+
+document.getElementById('dup_add_new_btn').addEventListener('click', () => {
+    document.getElementById('duplicate_modal').style.display = 'none';
+    showDetailForm(tempQrObject, true);
+});
+
+document.getElementById('dup_cancel_btn').addEventListener('click', () => {
+    document.getElementById('duplicate_modal').style.display = 'none';
 });
 
 // XUẤT EXCEL
 document.getElementById('export_excel_btn').addEventListener('click', () => {
     if (globalExcelData.length === 0) {
-        alert("Không có dữ liệu để xuất Excel!");
+        alert("Không có dữ liệu để xuất!");
         return;
     }
-    
-    const exportData = globalExcelData.map(item => {
-        let clone = { ...item };
-        delete clone['Ảnh'];
-        return clone;
-    });
-
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const worksheet = XLSX.utils.json_to_sheet(globalExcelData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "DanhSachDoiTuong");
-
-    const today = new Date();
-    const dateStr = `${today.getDate()}-${today.getMonth()+1}-${today.getFullYear()}`;
-    XLSX.writeFile(workbook, `Danh_Sach_Quan_Ly_Ho_So_${dateStr}.xlsx`);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "HoSoData");
+    XLSX.writeFile(workbook, `Bao_Cao_Ho_So_${new Date().toISOString().slice(0,10)}.xlsx`);
 });
 </script>
 </body>
