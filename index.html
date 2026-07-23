@@ -198,7 +198,7 @@
     </div>
 </div>
 
-<!-- MODAL QUÉT QR DÀNH CHO CCCD BẢN CHÍNH (Đã tối ưu siêu nhanh) -->
+<!-- MODAL QUÉT QR CCCD -->
 <div class="modal-overlay" id="qr_modal">
     <div class="modal-box" style="max-width: 450px;">
         <h4>Quét QR Căn Cước Công Dân</h4>
@@ -620,7 +620,7 @@ document.getElementById('camera_capture_btn').addEventListener('click', () => {
 });
 
 // =========================================================================
-// BỘ QUÉT QR TỐI ƯU CỰC NHANH DÀNH CHO THẺ CCCD BẢN CHÍNH
+// BỘ QUÉT QR TỐI ƯU CỰC NHANH DÀNH CHO THẺ CCCD BẢN CHÍNH (ĐÃ ĐƯỢC FIX LỖI)
 // =========================================================================
 const qrModal = document.getElementById('qr_modal');
 const torchBtn = document.getElementById('torch_btn');
@@ -632,30 +632,23 @@ document.getElementById('open_qr_modal_btn').addEventListener('click', () => {
     // Khởi tạo thư viện
     html5QrCodeScanner = new Html5Qrcode("qr_reader_view");
     
-    // Cấu hình tăng tốc độ quét vượt trội:
+    // Cấu hình quét siêu tốc
     const qrConfig = { 
-        fps: 30, // Tăng tốc độ quét lên 30 khung hình/giây
+        fps: 30,
         qrbox: function(viewfinderWidth, viewfinderHeight) {
-            // Giới hạn vùng quét tập trung đúng mã QR nhỏ của CCCD (250px)
             let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
             let boxSize = Math.floor(minEdge * 0.7);
             return { width: boxSize, height: boxSize };
         },
         aspectRatio: 1.0,
         experimentalFeatures: {
-            useBarCodeDetectorIfSupported: true // Tận dụng GPU phần cứng điện thoại để quét ngay lập tức
+            useBarCodeDetectorIfSupported: true
         }
     };
-    
-    // Cấu hình độ phân giải Camera vừa đủ nét giúp CPU xử lý siêu tốc
-    const cameraConstraints = { 
-        facingMode: "environment",
-        width: { min: 640, ideal: 1280, max: 1920 },
-        height: { min: 480, ideal: 720, max: 1080 }
-    };
 
+    // Chuẩn hóa tham số: truyền duy nhất 1 key { facingMode: "environment" }
     html5QrCodeScanner.start(
-        cameraConstraints, 
+        { facingMode: "environment" }, 
         qrConfig, 
         onQrCodeScanned, 
         () => {}
@@ -664,10 +657,12 @@ document.getElementById('open_qr_modal_btn').addEventListener('click', () => {
             const track = html5QrCodeScanner.getRunningTrack();
             const capabilities = track.getCapabilities ? track.getCapabilities() : {};
             
-            // Bật lấy nét tự động nếu thiết bị hỗ trợ
-            if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
-                track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
-            }
+            // Tối ưu tự động lấy nét
+            track.applyConstraints({
+                advanced: [
+                    { focusMode: 'continuous' }
+                ]
+            }).catch(() => {});
             
             if (capabilities.torch) {
                 torchBtn.style.display = 'inline-block';
