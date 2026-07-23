@@ -198,7 +198,7 @@
     </div>
 </div>
 
-<!-- MODAL QUÉT QR DÀNH CHO CCCD BẢN CHÍNH -->
+<!-- MODAL QUÉT QR DÀNH CHO CCCD BẢN CHÍNH (Đã tối ưu siêu nhanh) -->
 <div class="modal-overlay" id="qr_modal">
     <div class="modal-box" style="max-width: 450px;">
         <h4>Quét QR Căn Cước Công Dân</h4>
@@ -576,7 +576,7 @@ function handleSearch() {
 }
 document.getElementById('search_btn').addEventListener('click', handleSearch);
 
-// CAMERA CHỤP ẢNH
+// CAMERA CHỤP ẢNH CHÂN DUNG
 const cameraModal = document.getElementById('camera_modal');
 const cameraVideo = document.getElementById('camera_video');
 
@@ -588,7 +588,7 @@ document.getElementById('open_camera_btn').addEventListener('click', async () =>
         cameraVideo.srcObject = cameraStream;
         cameraModal.style.display = 'flex';
     } catch (err) {
-        alert("Không thể truy cập camera. Vui lòng chạy trang web trên HTTPS hoặc Server nội bộ!");
+        alert("Không thể truy cập camera!");
     }
 });
 
@@ -619,9 +619,9 @@ document.getElementById('camera_capture_btn').addEventListener('click', () => {
     closeCamera();
 });
 
-// ========================================================
-// BỘ QUÉT QR CHUYÊN DỤNG THẺ CCCD BẢN CHÍNH (Đã tối ưu)
-// ========================================================
+// =========================================================================
+// BỘ QUÉT QR TỐI ƯU CỰC NHANH DÀNH CHO THẺ CCCD BẢN CHÍNH
+// =========================================================================
 const qrModal = document.getElementById('qr_modal');
 const torchBtn = document.getElementById('torch_btn');
 
@@ -629,32 +629,42 @@ document.getElementById('open_qr_modal_btn').addEventListener('click', () => {
     qrModal.style.display = 'flex';
     isTorchOn = false;
     
+    // Khởi tạo thư viện
     html5QrCodeScanner = new Html5Qrcode("qr_reader_view");
     
-    // Cấu hình linh hoạt khung hình cho mã QR dầy CCCD
+    // Cấu hình tăng tốc độ quét vượt trội:
     const qrConfig = { 
-        fps: 20, 
+        fps: 30, // Tăng tốc độ quét lên 30 khung hình/giây
         qrbox: function(viewfinderWidth, viewfinderHeight) {
+            // Giới hạn vùng quét tập trung đúng mã QR nhỏ của CCCD (250px)
             let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            return { width: Math.floor(minEdge * 0.82), height: Math.floor(minEdge * 0.82) };
+            let boxSize = Math.floor(minEdge * 0.7);
+            return { width: boxSize, height: boxSize };
         },
         aspectRatio: 1.0,
         experimentalFeatures: {
-            useBarCodeDetectorIfSupported: true
+            useBarCodeDetectorIfSupported: true // Tận dụng GPU phần cứng điện thoại để quét ngay lập tức
         }
     };
     
+    // Cấu hình độ phân giải Camera vừa đủ nét giúp CPU xử lý siêu tốc
+    const cameraConstraints = { 
+        facingMode: "environment",
+        width: { min: 640, ideal: 1280, max: 1920 },
+        height: { min: 480, ideal: 720, max: 1080 }
+    };
+
     html5QrCodeScanner.start(
-        { facingMode: "environment" }, 
+        cameraConstraints, 
         qrConfig, 
         onQrCodeScanned, 
         () => {}
     ).then(() => {
-        // Tự động bật chế độ lấy nét liên tục (Continuous Focus)
         try {
             const track = html5QrCodeScanner.getRunningTrack();
             const capabilities = track.getCapabilities ? track.getCapabilities() : {};
             
+            // Bật lấy nét tự động nếu thiết bị hỗ trợ
             if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
                 track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
             }
