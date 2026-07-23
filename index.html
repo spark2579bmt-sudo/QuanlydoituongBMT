@@ -620,7 +620,7 @@ document.getElementById('camera_capture_btn').addEventListener('click', () => {
 });
 
 // =========================================================================
-// BỘ QUÉT QR TỐI ƯU CỰC NHANH DÀNH CHO THẺ CCCD BẢN CHÍNH (ĐÃ ĐƯỢC FIX LỖI)
+// QUÉT QR VÀ GIẢI MÃ CHUẨN UTF-8 DÀNH CHO CCCD VIỆT NAM (ĐÃ FIX TRIỆT ĐỂ)
 // =========================================================================
 const qrModal = document.getElementById('qr_modal');
 const torchBtn = document.getElementById('torch_btn');
@@ -629,15 +629,13 @@ document.getElementById('open_qr_modal_btn').addEventListener('click', () => {
     qrModal.style.display = 'flex';
     isTorchOn = false;
     
-    // Khởi tạo thư viện
     html5QrCodeScanner = new Html5Qrcode("qr_reader_view");
     
-    // Cấu hình quét siêu tốc
     const qrConfig = { 
-        fps: 30,
+        fps: 25,
         qrbox: function(viewfinderWidth, viewfinderHeight) {
             let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            let boxSize = Math.floor(minEdge * 0.7);
+            let boxSize = Math.floor(minEdge * 0.75);
             return { width: boxSize, height: boxSize };
         },
         aspectRatio: 1.0,
@@ -646,7 +644,6 @@ document.getElementById('open_qr_modal_btn').addEventListener('click', () => {
         }
     };
 
-    // Chuẩn hóa tham số: truyền duy nhất 1 key { facingMode: "environment" }
     html5QrCodeScanner.start(
         { facingMode: "environment" }, 
         qrConfig, 
@@ -657,11 +654,8 @@ document.getElementById('open_qr_modal_btn').addEventListener('click', () => {
             const track = html5QrCodeScanner.getRunningTrack();
             const capabilities = track.getCapabilities ? track.getCapabilities() : {};
             
-            // Tối ưu tự động lấy nét
             track.applyConstraints({
-                advanced: [
-                    { focusMode: 'continuous' }
-                ]
+                advanced: [{ focusMode: 'continuous' }]
             }).catch(() => {});
             
             if (capabilities.torch) {
@@ -701,24 +695,44 @@ function stopQrScanner() {
 
 document.getElementById('qr_close_btn').addEventListener('click', stopQrScanner);
 
-// Bóc tách UTF-8 dữ liệu thẻ CCCD Việt Nam
-function parseCCCDData(qrText) {
-    if (!qrText) return null;
-    const parts = qrText.split('|');
+// HÀM GIẢI MÃ CHUỖI NHỊ PHÂN SANG UTF-8 ĐỂ ĐỌC TIẾNG VIỆT CÓ DẤU CHUẨN
+function decodeUtf8Cccd(str) {
+    try {
+        return decodeURIComponent(escape(str));
+    } catch (e) {
+        return str; // Nếu là chuỗi chuẩn sẵn thì giữ nguyên
+    }
+}
+
+// BÓC TÁCH DỮ LIỆU CCCD GẮN CHIP VIỆT NAM (ĐỊNH DẠNG: CCCD|CMND|HỌ_TÊN|NGÀY_SINH|GIỚI_TÍNH|ĐỊA_CHỈ|NGÀY_CẤP)
+function parseCCCDData(rawText) {
+    if (!rawText) return null;
     
+    // Giải mã tiếng Việt UTF-8
+    const cleanText = decodeUtf8Cccd(rawText).trim();
+    const parts = cleanText.split('|');
+    
+    // Kiểm tra cấu trúc QR CCCD chuẩn (Tối thiểu phải có 6 phần ngăn cách bởi dấu |)
     if (parts.length >= 6) {
-        const rawDate = parts[3] ? parts[3].trim() : "";
+        const soCCCD = parts[0] ? parts[0].trim() : '';
+        const soCMNDCu = parts[1] ? parts[1].trim() : '';
+        const hoTen = parts[2] ? parts[2].trim() : '';
+        const rawDate = parts[3] ? parts[3].trim() : '';
+        const gioiTinh = parts[4] ? parts[4].trim() : '';
+        const thuongTru = parts[5] ? parts[5].trim() : '';
+        
         let formattedNamSinh = rawDate;
         if (rawDate.length === 8) {
+            // Định dạng ngày sinh từ DDMMYYYY thành DD/MM/YYYY
             formattedNamSinh = `${rawDate.substring(0,2)}/${rawDate.substring(2,4)}/${rawDate.substring(4,8)}`;
         }
         
         return {
-            'Họ tên': parts[2] ? parts[2].trim() : '',
+            'Họ tên': hoTen,
             'Năm sinh': formattedNamSinh,
-            'Giới tính': parts[4] ? parts[4].trim() : '',
-            'Thường trú': parts[5] ? parts[5].trim() : '',
-            'Ghi chú': `Số CCCD: ${parts[0]}${parts[1] ? ' - CMND cũ: ' + parts[1] : ''}`
+            'Giới tính': gioiTinh,
+            'Thường trú': thuongTru,
+            'Ghi chú': `Số CCCD: ${soCCCD}${soCMNDCu ? ' - CMND cũ: ' + soCMNDCu : ''}`
         };
     }
     return null;
@@ -728,11 +742,12 @@ function onQrCodeScanned(decodedText) {
     stopQrScanner();
     const parsedData = parseCCCDData(decodedText);
     
-    if (!parsedData) {
-        alert("Mã QR không khớp chuẩn định dạng CCCD gắn chip!");
+    if (!parsedData || !parsedData['Họ tên']) {
+        alert("Đã nhận diện mã QR nhưng không khớp định dạng thẻ CCCD gắn chip!\nDữ liệu nhận được: " + decodedText);
         return;
     }
 
+    // Kiểm tra xem đối tượng này đã có trong dữ liệu hiện tại chưa
     const existingIndex = globalExcelData.findIndex(item => 
         String(getColumnValue(item, 'Họ tên')).trim().toLowerCase() === parsedData['Họ tên'].trim().toLowerCase() &&
         String(getColumnValue(item, 'Năm sinh')).trim() === parsedData['Năm sinh'].trim()
