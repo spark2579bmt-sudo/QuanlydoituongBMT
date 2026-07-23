@@ -125,14 +125,14 @@
         .call-btn:hover { background-color: #059669; }
         
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 10000; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
-        .modal-box { background: white; padding: 25px 30px; border-radius: 6px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border-top: 5px solid var(--police-gold); }
+        .modal-box { background: white; padding: 25px 30px; border-radius: 6px; width: 100%; max-width: 420px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border-top: 5px solid var(--police-gold); }
         .modal-box h4 { margin: 0 0 15px 0; color: var(--police-green); text-transform: uppercase; }
         .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
         .modal-btn { flex: 1; padding: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; text-transform: uppercase; text-align: center; }
         .btn-save { background-color: var(--police-green); color: white; }
         .btn-cancel { background-color: #e5e7eb; color: #4b5563; }
         
-        #qr_reader_view { width: 100%; background: #000; border-radius: 4px; overflow: hidden; }
+        #qr_reader_view { width: 100%; background: #000; border-radius: 4px; overflow: hidden; min-height: 280px; }
         .save-new-btn { background-color: var(--police-gold) !important; color: white !important; font-weight: bold; margin-top: 15px; }
         
         @media (max-width: 900px) {
@@ -198,11 +198,15 @@
     </div>
 </div>
 
+<!-- MODAL QUÉT QR DÀNH CHO CCCD BẢN CHÍNH -->
 <div class="modal-overlay" id="qr_modal">
     <div class="modal-box" style="max-width: 450px;">
         <h4>Quét QR Căn Cước Công Dân</h4>
         <div id="qr_reader_view"></div>
-        <div class="modal-actions"><button class="modal-btn btn-cancel" id="qr_close_btn">Đóng</button></div>
+        <div class="modal-actions" style="margin-top:15px;">
+            <button class="modal-btn" id="torch_btn" style="background-color:#d97706; color:white; display:none;">💡 Bật Đèn Flash</button>
+            <button class="modal-btn btn-cancel" id="qr_close_btn">Đóng</button>
+        </div>
     </div>
 </div>
 
@@ -324,7 +328,7 @@ let currentViewingItem = null;
 let isAddingNewMode = false;
 let cameraStream = null;
 let html5QrCodeScanner = null;
-let temporaryScannedQRItem = null;
+let isTorchOn = false;
 
 const fieldMapping = {
     'form_tenkhac': 'Tên khác',
@@ -584,7 +588,7 @@ document.getElementById('open_camera_btn').addEventListener('click', async () =>
         cameraVideo.srcObject = cameraStream;
         cameraModal.style.display = 'flex';
     } catch (err) {
-        alert("Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập thiết bị hoặc chạy trang qua HTTP/HTTPS!");
+        alert("Không thể truy cập camera. Vui lòng chạy trang web trên HTTPS hoặc Server nội bộ!");
     }
 });
 
@@ -615,20 +619,28 @@ document.getElementById('camera_capture_btn').addEventListener('click', () => {
     closeCamera();
 });
 
-// QUÉT QR CCCD
+// ========================================================
+// BỘ QUÉT QR CHUYÊN DỤNG THẺ CCCD BẢN CHÍNH (Đã tối ưu)
+// ========================================================
 const qrModal = document.getElementById('qr_modal');
+const torchBtn = document.getElementById('torch_btn');
 
 document.getElementById('open_qr_modal_btn').addEventListener('click', () => {
     qrModal.style.display = 'flex';
+    isTorchOn = false;
     
     html5QrCodeScanner = new Html5Qrcode("qr_reader_view");
+    
+    // Cấu hình linh hoạt khung hình cho mã QR dầy CCCD
     const qrConfig = { 
-        fps: 15, 
-        qrbox: { width: 250, height: 250 },
-        videoConstraints: {
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            facingMode: "environment"
+        fps: 20, 
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+            let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            return { width: Math.floor(minEdge * 0.82), height: Math.floor(minEdge * 0.82) };
+        },
+        aspectRatio: 1.0,
+        experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true
         }
     };
     
@@ -637,10 +649,33 @@ document.getElementById('open_qr_modal_btn').addEventListener('click', () => {
         qrConfig, 
         onQrCodeScanned, 
         () => {}
-    ).catch(err => {
+    ).then(() => {
+        // Tự động bật chế độ lấy nét liên tục (Continuous Focus)
+        try {
+            const track = html5QrCodeScanner.getRunningTrack();
+            const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+            
+            if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+                track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+            }
+            
+            if (capabilities.torch) {
+                torchBtn.style.display = 'inline-block';
+            }
+        } catch(e) {}
+    }).catch(err => {
         alert("Không thể mở camera quét QR: " + err);
         qrModal.style.display = 'none';
     });
+});
+
+torchBtn.addEventListener('click', () => {
+    if (html5QrCodeScanner) {
+        const track = html5QrCodeScanner.getRunningTrack();
+        isTorchOn = !isTorchOn;
+        track.applyConstraints({ advanced: [{ torch: isTorchOn }] });
+        torchBtn.textContent = isTorchOn ? "💡 Tắt Đèn Flash" : "💡 Bật Đèn Flash";
+    }
 });
 
 function stopQrScanner() {
@@ -648,30 +683,36 @@ function stopQrScanner() {
         html5QrCodeScanner.stop().then(() => {
             html5QrCodeScanner.clear();
             qrModal.style.display = 'none';
+            torchBtn.style.display = 'none';
         }).catch(() => {
             qrModal.style.display = 'none';
+            torchBtn.style.display = 'none';
         });
     } else {
         qrModal.style.display = 'none';
+        torchBtn.style.display = 'none';
     }
 }
 
 document.getElementById('qr_close_btn').addEventListener('click', stopQrScanner);
 
+// Bóc tách UTF-8 dữ liệu thẻ CCCD Việt Nam
 function parseCCCDData(qrText) {
+    if (!qrText) return null;
     const parts = qrText.split('|');
+    
     if (parts.length >= 6) {
-        const rawDate = parts[3] || "";
+        const rawDate = parts[3] ? parts[3].trim() : "";
         let formattedNamSinh = rawDate;
         if (rawDate.length === 8) {
             formattedNamSinh = `${rawDate.substring(0,2)}/${rawDate.substring(2,4)}/${rawDate.substring(4,8)}`;
         }
         
         return {
-            'Họ tên': parts[2] || '',
+            'Họ tên': parts[2] ? parts[2].trim() : '',
             'Năm sinh': formattedNamSinh,
-            'Giới tính': parts[4] || '',
-            'Thường trú': parts[5] || '',
+            'Giới tính': parts[4] ? parts[4].trim() : '',
+            'Thường trú': parts[5] ? parts[5].trim() : '',
             'Ghi chú': `Số CCCD: ${parts[0]}${parts[1] ? ' - CMND cũ: ' + parts[1] : ''}`
         };
     }
@@ -683,11 +724,9 @@ function onQrCodeScanned(decodedText) {
     const parsedData = parseCCCDData(decodedText);
     
     if (!parsedData) {
-        alert("Mã QR không đúng định dạng CCCD Việt Nam!");
+        alert("Mã QR không khớp chuẩn định dạng CCCD gắn chip!");
         return;
     }
-
-    temporaryScannedQRItem = parsedData;
 
     const existingIndex = globalExcelData.findIndex(item => 
         String(getColumnValue(item, 'Họ tên')).trim().toLowerCase() === parsedData['Họ tên'].trim().toLowerCase() &&
