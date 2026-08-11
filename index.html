@@ -203,19 +203,6 @@
     </div>
 </div>
 
-<!-- MODAL CẢNH BÁO TRÙNG LẶP -->
-<div class="modal-overlay" id="duplicate_modal">
-    <div class="modal-box">
-        <h4 style="color:#dc2626;">⚠️ Cảnh báo trùng lặp hồ sơ</h4>
-        <p id="duplicate_msg" style="font-weight: 500; font-size: 14px; line-height: 1.5; color:#1f2937;"></p>
-        <div class="modal-actions" style="flex-direction: column; gap: 10px;">
-            <button class="modal-btn btn-save" id="dup_view_old_btn" style="width: 100%;">👉 Xem hồ sơ hiện tại</button>
-            <button class="modal-btn" id="dup_add_new_btn" style="width: 100%; background-color: var(--police-gold); color:white;">➕ Thêm mới (Cập nhật tội danh mới)</button>
-            <button class="modal-btn btn-cancel" id="dup_cancel_btn" style="width: 100%;">Hủy bỏ</button>
-        </div>
-    </div>
-</div>
-
 <!-- MODAL ĐỔI MẬT KHẨU -->
 <div class="modal-overlay" id="password_modal">
     <div class="modal-box">
@@ -231,7 +218,7 @@
     </div>
 </div>
 
-<!-- MODAL CHỤP ẢNH ĐỐI TƯỢNG -->
+<!-- MODAL CHỤP ẢNH CHÂN DUNG -->
 <div class="modal-overlay" id="camera_modal">
     <div class="modal-box" style="max-width: 450px;">
         <h4>Chụp ảnh chân dung</h4>
@@ -239,6 +226,18 @@
         <div class="modal-actions">
             <button class="modal-btn btn-cancel" id="camera_close_btn">Đóng</button>
             <button class="modal-btn btn-save" id="camera_capture_btn">Chụp</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL CHỤP TÀI LIỆU SCAN GCN -->
+<div class="modal-overlay" id="scan_camera_modal">
+    <div class="modal-box" style="max-width: 480px;">
+        <h4>Chụp tài liệu / Giấy chứng nhận</h4>
+        <video id="scan_camera_video" style="width:100%; height:320px; object-fit: cover; background:#000; border-radius:4px;" autoplay playsinline></video>
+        <div class="modal-actions">
+            <button class="modal-btn btn-cancel" id="scan_camera_close_btn">Đóng</button>
+            <button class="modal-btn btn-save" id="scan_camera_capture_btn">Chụp & Lưu tài liệu</button>
         </div>
     </div>
 </div>
@@ -338,7 +337,7 @@
                 <div class="form-field"><label>Ngày ký QĐ THA</label><input type="text" id="form_ngaykyqdtha"></div>
                 <div class="form-field span-2"><label>Đơn vị ký QĐ THA</label><input type="text" id="form_donvikyqdtha"></div>
 
-                <!-- LỊCH SỬ CHẤP HÀNH ÁN (CÁC TIỀN ÁN TRƯỚC) -->
+                <!-- LỊCH SỬ CHẤP HÀNH ÁN -->
                 <div class="section-separator">Lịch sử chấp hành án (Các tiền án trước)</div>
                 <div id="history_container" class="full-width"></div>
                 <div class="full-width" style="padding:15px; border: 1px dashed var(--police-green); border-radius: 4px; background: #f9fafb;">
@@ -374,6 +373,18 @@
                 <div class="form-field"><label>GCN CHX</label><input type="text" id="form_gcnchx"></div>
                 <div class="form-field"><label>Ngày ký GCN</label><input type="text" id="form_ngaykygcn"></div>
                 <div class="form-field"><label>Đơn vị ký GCN</label><input type="text" id="form_donvikygcn"></div>
+                
+                <div class="form-field full-width" style="background: #f0fdf4; padding: 12px; border: 1px dashed #10b981; border-radius: 4px; margin-top: 5px;">
+                    <label style="color: var(--police-green); margin-bottom: 6px;">📄 File scan Giấy chứng nhận CHX (Chọn file hoặc Chụp tài liệu)</label>
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <input type="file" id="form_file_scan_gcn" accept=".pdf, image/*" style="font-size: 12px; flex: 1; min-width: 180px;" />
+                        <button type="button" id="open_scan_camera_btn" class="photo-btn" style="width: auto; background-color: var(--police-green); padding: 6px 12px;">📷 Chụp tài liệu</button>
+                        <button type="button" id="view_scan_btn" class="photo-btn" style="width: auto; background-color: var(--police-gold); display: none; padding: 6px 12px;">👁️ Xem / Tải file</button>
+                        <button type="button" id="delete_scan_btn" class="photo-btn btn-danger" style="width: auto; display: none; padding: 6px 12px;">❌ Xóa file</button>
+                    </div>
+                    <div id="scan_file_info" style="font-size: 11px; color: #6b7280; margin-top: 5px; font-style: italic;">Chưa có file scan nào được lưu.</div>
+                </div>
+
                 <div class="form-field span-2"><label>Án phạt (Chấp hành án)</label><input type="text" id="form_anphat_tha" placeholder="Án phạt phần chấp hành án"></div>
                 
                 <div class="form-field"><label>Ngày trình diện</label><input type="text" id="form_ngaytrinhdien"></div>
@@ -418,60 +429,55 @@ let globalExcelData = [];
 let currentViewingItem = null;
 let isAddingNewMode = false;
 let cameraStream = null;
+let scanCameraStream = null;
 let html5QrCodeScanner = null;
-let tempQrObject = null;
-let existingDuplicateItem = null;
 
 const fieldMapping = {
-    'form_tenkhac': 'Tên khác',
-    'form_dantoc': 'Dân tộc',
-    'form_tongiao': 'Tôn giáo',
-    'form_quequan': 'Quê quán',
-    'form_sodt': 'Số ĐTDĐ',
-    'form_noicutru': 'Nơi cư trú',
-    'form_tdp': 'TDP',
-    'form_ngaybat': 'Ngày bắt',
-    'form_banan': 'Bản án',
-    'form_ngaykyba': 'Ngày ký BA',
-    'form_donvikyba': 'Đơn vị ký BA',
-    'form_qdtha': 'QĐ THA',
-    'form_ngaykyqdtha': 'Ngày ký QĐ THA',
-    'form_donvikyqdtha': 'Đơn vị ký QĐ THA',
-    'form_gcnchx': 'GCN CHX',
-    'form_ngaykygcn': 'Ngày ký GCN',
-    'form_donvikygcn': 'Đơn vị ký GCN',
-    'form_anphat_tha': 'Án phạt THA',
-    'form_ngaytrinhdien': 'Ngày trình diện',
-    'form_ngaybdchaphanh': 'Ngày BĐ chấp hành',
-    'form_ngaychxong': 'Ngày CH xong',
-    'form_tgdachah': 'TG đã CH',
-    'form_thoigiancon': 'Thời gian còn',
-    'form_thuthach': 'Thử thách',
-    'form_aphs': 'APHS',
-    'form_hocvan': 'Học vấn',
-    'form_nghenghiep': 'Nghề nghiệp',
-    'form_ngheduochoctha': 'Nghề được học THA',
-    'form_tienan': 'Tiền án',
-    'form_tiensu': 'Tiền sự',
-    'form_sudungmtloai': 'Sử dụng MT loại',
-    'form_tencha': 'Tên cha',
-    'form_nctcha': 'NCT Cha',
-    'form_tenme': 'Tên mẹ',
-    'form_nctme': 'NCT mẹ',
-    'form_hinhthucquanly': 'Hình thức quản lý',
-    'form_toidanh': 'Tội danh',
-    'form_anphat': 'Án phạt',
-    'form_ghichu': 'Ghi chú'
+    'form_tenkhac': ['Tên khác', 'Ten khac'],
+    'form_dantoc': ['Dân tộc', 'Dan toc'],
+    'form_tongiao': ['Tôn giáo', 'Ton giao'],
+    'form_quequan': ['Quê quán', 'Que quan'],
+    'form_sodt': ['Số ĐTDĐ', 'Số điện thoại', 'So dien thoai', 'SĐT', 'SDT'],
+    'form_noicutru': ['Nơi cư trú', 'Noi cu tru'],
+    'form_tdp': ['TDP', 'Tổ dân phố', 'To dan pho'],
+    'form_ngaybat': ['Ngày bắt', 'Ngay bat'],
+    'form_banan': ['Bản án', 'Ban an'],
+    'form_ngaykyba': ['Ngày ký BA', 'Ngay ky BA'],
+    'form_donvikyba': ['Đơn vị ký BA', 'Don vi ky BA'],
+    'form_qdtha': ['QĐ THA', 'QD THA'],
+    'form_ngaykyqdtha': ['Ngày ký QĐ THA', 'Ngay ky QD THA'],
+    'form_donvikyqdtha': ['Đơn vị ký QĐ THA', 'Don vi ky QD THA'],
+    'form_gcnchx': ['GCN CHX', 'GCNCHX'],
+    'form_ngaykygcn': ['Ngày ký GCN', 'Ngay ky GCN'],
+    'form_donvikygcn': ['Đơn vị ký GCN', 'Don vi ky GCN'],
+    'form_anphat_tha': ['Án phạt THA', 'An phat THA'],
+    'form_ngaytrinhdien': ['Ngày trình diện', 'Ngay trinh dien'],
+    'form_ngaybdchaphanh': ['Ngày BĐ chấp hành', 'Ngay BD chap hanh'],
+    'form_ngaychxong': ['Ngày CH xong', 'Ngay CH xong'],
+    'form_tgdachah': ['TG đã CH', 'TG da CH'],
+    'form_thoigiancon': ['Thời gian còn', 'Thoi gian con'],
+    'form_thuthach': ['Thử thách', 'Thu thach'],
+    'form_aphs': ['APHS', 'Aphs'],
+    'form_hocvan': ['Học vấn', 'Hoc van'],
+    'form_nghenghiep': ['Nghề nghiệp', 'Nghe nghiep'],
+    'form_ngheduochoctha': ['Nghề được học THA', 'Nghe duoc hoc THA'],
+    'form_tienan': ['Tiền án', 'Tien an'],
+    'form_tiensu': ['Tiền sự', 'Tien su'],
+    'form_sudungmtloai': ['Sử dụng MT loại', 'Su dung MT loai'],
+    'form_tencha': ['Tên cha', 'Ten cha'],
+    'form_nctcha': ['NCT Cha', 'NCT cha'],
+    'form_tenme': ['Tên mẹ', 'Ten me'],
+    'form_nctme': ['NCT mẹ', 'NCT me'],
+    'form_hinhthucquanly': ['Hình thức quản lý', 'Hinh thuc quan ly'],
+    'form_toidanh': ['Tội danh', 'Toi danh'],
+    'form_anphat': ['Án phạt', 'An phat'],
+    'form_ghichu': ['Ghi chú', 'Ghi chu']
 };
 
 function getStoredPassword() { return localStorage.getItem('app_security_password') || DEFAULT_PASSWORD; }
 
 function validateStrongPassword(password) {
-    const minLength = password.length >= 8;
-    const hasLetter = /[a-zA-Z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-    const hasSpecial = /[^a-zA-Z0-9]/.test(password);
-    return minLength && hasLetter && hasNumber && hasSpecial;
+    return password.length >= 8 && /[a-zA-Z]/.test(password) && /[0-9]/.test(password) && /[^a-zA-Z0-9]/.test(password);
 }
 
 function checkLogin() {
@@ -511,8 +517,10 @@ function saveToLocalCache() { localStorage.setItem('hoso_excel_cache', JSON.stri
 function checkAndLoadLocalCache() {
     const cachedData = localStorage.getItem('hoso_excel_cache');
     if(cachedData) {
-        globalExcelData = JSON.parse(cachedData);
-        if(globalExcelData.length > 0) { activateMainSystem(); renderNameList(globalExcelData); }
+        try {
+            globalExcelData = JSON.parse(cachedData);
+            if(globalExcelData.length > 0) { activateMainSystem(); renderNameList(globalExcelData); }
+        } catch(err) { console.error(err); }
     }
 }
 function activateMainSystem() {
@@ -529,7 +537,16 @@ document.getElementById('clear_cache_btn').addEventListener('click', () => {
     if(confirm("Xóa toàn bộ bộ nhớ tạm hệ thống?")) { localStorage.removeItem('hoso_excel_cache'); location.reload(); }
 });
 
-function getColumnValue(row, columnName) { return row[columnName] !== undefined ? row[columnName] : ""; }
+function getColumnValue(row, possibleKeys) {
+    if (!row) return "";
+    if (typeof possibleKeys === 'string') possibleKeys = [possibleKeys];
+    for (let key of possibleKeys) {
+        if (row[key] !== undefined && row[key] !== null) return row[key];
+        let foundKey = Object.keys(row).find(k => k.trim().toLowerCase() === key.trim().toLowerCase());
+        if (foundKey && row[foundKey] !== undefined && row[foundKey] !== null) return row[foundKey];
+    }
+    return "";
+}
 
 document.getElementById('excel_file').addEventListener('change', function(event) {
     const file = event.target.files[0];
@@ -557,20 +574,16 @@ document.getElementById('excel_file').addEventListener('change', function(event)
     reader.readAsArrayBuffer(file);
 });
 
-// NÚT THÊM ĐỐI TƯỢNG THỦ CÔNG TỪ MÀN HÌNH CHÍNH
 document.getElementById('open_manual_add_btn').addEventListener('click', function() {
     let emptyItem = { 'LichSuAn': [] };
     showDetailForm(emptyItem, true);
     document.getElementById('form_title_mode').textContent = "➕ THÊM MỚI ĐỐI TƯỢNG THỦ CÔNG";
 });
 
-// NÚT XÓA ĐỐI TƯỢNG (CÓ HỎI LẠI TRƯỚC KHI XÓA)[cite: 4]
 document.getElementById('delete_person_btn').addEventListener('click', function() {
     if (!currentViewingItem) return;
-    let name = getColumnValue(currentViewingItem, 'Họ tên') || "đối tượng này";
-    let confirmDelete = confirm(`⚠️ Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ của đối tượng "${name}" không?`);
-    if (confirmDelete) {
-        // Xóa đối tượng khỏi mảng globalExcelData
+    let name = getColumnValue(currentViewingItem, ['Họ tên', 'Họ và tên']) || "đối tượng này";
+    if (confirm(`⚠️ Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ của đối tượng "${name}" không?`)) {
         globalExcelData = globalExcelData.filter(item => item !== currentViewingItem);
         saveToLocalCache();
         alert("Đã xóa đối tượng thành công!");
@@ -582,7 +595,6 @@ document.getElementById('delete_person_btn').addEventListener('click', function(
     }
 });
 
-// TÍNH NĂNG THỐNG KÊ THEO TDP, THEO TỘI DANH TỪNG TDP[cite: 4]
 document.getElementById('open_stats_btn').addEventListener('click', function() {
     const statsModal = document.getElementById('stats_modal');
     const statsContent = document.getElementById('stats_content');
@@ -595,24 +607,18 @@ document.getElementById('open_stats_btn').addEventListener('click', function() {
 
     let statsMap = {};
     globalExcelData.forEach(item => {
-        let tdp = String(getColumnValue(item, 'TDP')).trim();
+        let tdp = String(getColumnValue(item, ['TDP', 'Tổ dân phố'])).trim();
         if (!tdp) tdp = "Chưa rõ TDP";
-        let toidanh = String(getColumnValue(item, 'Tội danh')).trim();
+        let toidanh = String(getColumnValue(item, ['Tội danh'])).trim();
         if (!toidanh) toidanh = "Chưa xác định tội danh";
 
-        if (!statsMap[tdp]) {
-            statsMap[tdp] = { total: 0, crimes: {} };
-        }
+        if (!statsMap[tdp]) statsMap[tdp] = { total: 0, crimes: {} };
         statsMap[tdp].total += 1;
-        
-        if (!statsMap[tdp].crimes[toidanh]) {
-            statsMap[tdp].crimes[toidanh] = 0;
-        }
+        if (!statsMap[tdp].crimes[toidanh]) statsMap[tdp].crimes[toidanh] = 0;
         statsMap[tdp].crimes[toidanh] += 1;
     });
 
     let html = `<p style="font-weight:bold; margin-bottom:10px;">Tổng số đối tượng quản lý: <span style="color:var(--police-green); font-size:16px;">${globalExcelData.length}</span></p>`;
-    
     for (let tdp in statsMap) {
         html += `
             <div style="border: 1px solid #d1d5db; border-radius: 4px; padding: 12px; margin-bottom: 12px; background: #fdfdfd;">
@@ -627,7 +633,6 @@ document.getElementById('open_stats_btn').addEventListener('click', function() {
         }
         html += `</ul></div>`;
     }
-
     statsContent.innerHTML = html;
     statsModal.style.display = 'flex';
 });
@@ -636,7 +641,6 @@ document.getElementById('stats_close_btn').addEventListener('click', () => {
     document.getElementById('stats_modal').style.display = 'none';
 });
 
-// HIỂN THỊ DANH SÁCH KÈM ẢNH ĐẠI DIỆN THU NHỎ
 function renderNameList(data) {
     const listContainer = document.getElementById('results_list');
     listContainer.innerHTML = "";
@@ -649,10 +653,10 @@ function renderNameList(data) {
     data.forEach((item) => {
         let li = document.createElement('li');
         
-        let photoData = getColumnValue(item, 'Ảnh');
+        let photoData = getColumnValue(item, ['Ảnh', 'Anh']);
         let avatarDiv = document.createElement('div');
         avatarDiv.className = 'list-item-avatar';
-        if (photoData && photoData.trim() !== "") {
+        if (photoData && String(photoData).trim() !== "") {
             avatarDiv.innerHTML = `<img src="${photoData}" style="width:100%; height:100%; object-fit:cover;">`;
         } else {
             avatarDiv.textContent = "Không ảnh";
@@ -661,10 +665,13 @@ function renderNameList(data) {
         let infoDiv = document.createElement('div');
         infoDiv.className = 'list-item-info';
         
-        let txtName = getColumnValue(item, 'Họ tên') || "Không rõ họ tên";
-        let txtAlias = getColumnValue(item, 'Tên khác') ? ` (${getColumnValue(item, 'Tên khác')})` : "";
-        let txtTdp = getColumnValue(item, 'TDP') ? ` - TDP: ${getColumnValue(item, 'TDP')}` : "";
-        let txtCccd = getColumnValue(item, 'Số CCCD') ? ` [CCCD: ${getColumnValue(item, 'Số CCCD')}]` : "";
+        let txtName = getColumnValue(item, ['Họ tên', 'Họ và tên']) || "Không rõ họ tên";
+        let aliasVal = getColumnValue(item, ['Tên khác']);
+        let txtAlias = aliasVal ? ` (${aliasVal})` : "";
+        let tdpVal = getColumnValue(item, ['TDP', 'Tổ dân phố']);
+        let txtTdp = tdpVal ? ` - TDP: ${tdpVal}` : "";
+        let cccdVal = getColumnValue(item, ['Số CCCD', 'CCCD']);
+        let txtCccd = cccdVal ? ` [CCCD: ${cccdVal}]` : "";
         
         infoDiv.textContent = txtName + txtAlias + txtTdp + txtCccd;
 
@@ -698,24 +705,29 @@ function showDetailForm(item, isNewMode = false) {
     isAddingNewMode = isNewMode;
     document.getElementById('results_list').style.display = 'none';
     
-    document.getElementById('form_hoten').value = getColumnValue(item, 'Họ tên');
-    document.getElementById('form_namsinh').value = getColumnValue(item, 'Năm sinh');
-    document.getElementById('form_gioitinh').value = getColumnValue(item, 'Giới tính');
-    document.getElementById('form_thuongtru').value = getColumnValue(item, 'Thường trú');
+    document.getElementById('form_hoten').value = getColumnValue(item, ['Họ tên', 'Họ và tên']);
+    document.getElementById('form_namsinh').value = getColumnValue(item, ['Năm sinh', 'Nam sinh']);
+    document.getElementById('form_gioitinh').value = getColumnValue(item, ['Giới tính', 'Gioi tính']);
+    document.getElementById('form_thuongtru').value = getColumnValue(item, ['Thường trú', 'Thuong tru']);
     
     for (let id in fieldMapping) {
-        let excelKey = fieldMapping[id];
-        document.getElementById(id).value = getColumnValue(item, excelKey);
+        let keys = fieldMapping[id];
+        let val = getColumnValue(item, keys);
+        let el = document.getElementById(id);
+        if(el) el.value = val;
     }
 
-    updateCallButton(getColumnValue(item, 'Số ĐTDĐ'));
-    renderPhoto(getColumnValue(item, 'Ảnh'));
+    updateCallButton(getColumnValue(item, ['Số ĐTDĐ', 'SĐT', 'Số điện thoại']));
+    renderPhoto(getColumnValue(item, ['Ảnh', 'Anh']));
     renderLichSuAn(item);
+    
+    updateScanFileUI(item['FileScanGCN'], item['FileScanGCN_Name']);
+    document.getElementById('form_file_scan_gcn').value = "";
 
     if (isNewMode) {
         document.getElementById('form_title_mode').textContent = "🆕 THÊM / CẬP NHẬT ĐỐI TƯỢNG";
         document.getElementById('action_save_container').style.display = 'block';
-        document.getElementById('delete_person_btn').style.display = 'none'; // Ẩn nút xóa khi đang thêm mới
+        document.getElementById('delete_person_btn').style.display = 'none';
     } else {
         document.getElementById('form_title_mode').textContent = "PHIẾU THÔNG TIN CHI TIẾT ĐỐI TƯỢNG";
         document.getElementById('action_save_container').style.display = 'none';
@@ -725,7 +737,121 @@ function showDetailForm(item, isNewMode = false) {
     document.getElementById('detail_form').style.display = 'block';
 }
 
-// XỬ LÝ RENDER & QUẢN LÝ LỊCH SỬ ÁN CHI TIẾT
+// Xử lý chọn file scan
+const fileScanInput = document.getElementById('form_file_scan_gcn');
+const viewScanBtn = document.getElementById('view_scan_btn');
+const deleteScanBtn = document.getElementById('delete_scan_btn');
+const scanFileInfo = document.getElementById('scan_file_info');
+
+fileScanInput.addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+        alert("Dung lượng file quá lớn! Vui lòng chọn file dưới 5MB.");
+        fileScanInput.value = "";
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64String = e.target.result;
+        if (currentViewingItem) {
+            currentViewingItem['FileScanGCN'] = base64String;
+            currentViewingItem['FileScanGCN_Name'] = file.name;
+            saveToLocalCache();
+        }
+        updateScanFileUI(base64String, file.name);
+        alert("Đã đính kèm và lưu file scan thành công!");
+    };
+    reader.readAsDataURL(file);
+});
+
+// Xử lý chụp tài liệu scan trực tiếp qua camera
+const scanCameraModal = document.getElementById('scan_camera_modal');
+const scanCameraVideo = document.getElementById('scan_camera_video');
+
+document.getElementById('open_scan_camera_btn').addEventListener('click', function() {
+    scanCameraModal.style.display = 'flex';
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+    .then(stream => { 
+        scanCameraStream = stream; 
+        scanCameraVideo.srcObject = stream; 
+    })
+    .catch(() => alert("Không thể khởi động Camera để quét tài liệu!"));
+});
+
+document.getElementById('scan_camera_close_btn').addEventListener('click', closeScanCameraModal);
+
+function closeScanCameraModal() {
+    if (scanCameraStream) { 
+        scanCameraStream.getTracks().forEach(track => track.stop()); 
+        scanCameraStream = null; 
+    }
+    scanCameraModal.style.display = 'none';
+}
+
+document.getElementById('scan_camera_capture_btn').addEventListener('click', function() {
+    const canvas = document.createElement('canvas');
+    canvas.width = scanCameraVideo.videoWidth || 1280;
+    canvas.height = scanCameraVideo.videoHeight || 720;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(scanCameraVideo, 0, 0, canvas.width, canvas.height);
+    
+    const base64String = canvas.toDataURL('image/jpeg', 0.85);
+    const fileName = "Tai_lieu_Chup_Camera_" + new Date().toISOString().slice(0,10) + ".jpg";
+    
+    if (currentViewingItem) {
+        currentViewingItem['FileScanGCN'] = base64String;
+        currentViewingItem['FileScanGCN_Name'] = fileName;
+        saveToLocalCache();
+    }
+    
+    updateScanFileUI(base64String, fileName);
+    closeScanCameraModal();
+    alert("Đã chụp và lưu file tài liệu thành công!");
+});
+
+function updateScanFileUI(base64Data, fileName) {
+    if (base64Data && String(base64Data).trim() !== "") {
+        viewScanBtn.style.display = 'inline-block';
+        deleteScanBtn.style.display = 'inline-block';
+        scanFileInfo.textContent = `Đã lưu file: ${fileName || "Tai_lieu_scan.jpg"}`;
+        
+        viewScanBtn.onclick = function() {
+            let win = window.open();
+            win.document.write(`
+                <html>
+                <head><title>Xem File Scan Giấy Chứng Nhận CHX</title></head>
+                <body style="margin:0; background:#333; display:flex; flex-direction:column; align-items:center; height:100vh;">
+                    <div style="background:#222; color:#fff; width:100%; padding:10px; text-align:center; font-family:sans-serif;">
+                        <b>File: ${fileName || "Giấy chứng nhận chấp hành xong"}</b> 
+                        <a href="${base64Data}" download="${fileName || "GCN_CHX.jpg"}" style="margin-left:20px; background:#10b981; color:#fff; padding:5px 10px; text-decoration:none; border-radius:4px;">Tải về máy xuống</a>
+                    </div>
+                    <iframe src="${base64Data}" style="width:100%; height:100%; border:none;"></iframe>
+                </body>
+                </html>
+            `);
+        };
+    } else {
+        viewScanBtn.style.display = 'none';
+        deleteScanBtn.style.display = 'none';
+        scanFileInfo.textContent = "Chưa có file scan nào được lưu.";
+        fileScanInput.value = "";
+    }
+}
+
+deleteScanBtn.addEventListener('click', function() {
+    if (confirm("Bạn có chắc chắn muốn xóa file scan Giấy chứng nhận này không?")) {
+        if (currentViewingItem) {
+            currentViewingItem['FileScanGCN'] = "";
+            currentViewingItem['FileScanGCN_Name'] = "";
+            saveToLocalCache();
+        }
+        updateScanFileUI("", "");
+    }
+});
+
 function renderLichSuAn(item) {
     const container = document.getElementById('history_container');
     container.innerHTML = "";
@@ -810,7 +936,7 @@ window.removeAn = function(index) {
 function renderPhoto(photoData) {
     const container = document.getElementById('photo_container');
     const deleteBtn = document.getElementById('delete_photo_btn');
-    if (photoData && photoData.trim() !== "") {
+    if (photoData && String(photoData).trim() !== "") {
         container.innerHTML = `<img src="${photoData}">`;
         deleteBtn.style.display = 'block';
     } else {
@@ -835,13 +961,16 @@ document.getElementById('form_gioitinh').addEventListener('input', function() { 
 document.getElementById('form_thuongtru').addEventListener('input', function() { if (!isAddingNewMode && currentViewingItem) { currentViewingItem['Thường trú'] = this.value; saveToLocalCache(); } });
 
 for (let id in fieldMapping) {
-    document.getElementById(id).addEventListener('input', function() {
-        if (!isAddingNewMode && currentViewingItem) {
-            let excelKey = fieldMapping[this.id];
-            currentViewingItem[excelKey] = this.value;
-            saveToLocalCache();
-        }
-    });
+    let el = document.getElementById(id);
+    if(el) {
+        el.addEventListener('input', function() {
+            if (!isAddingNewMode && currentViewingItem) {
+                let excelKey = fieldMapping[this.id][0];
+                currentViewingItem[excelKey] = this.value;
+                saveToLocalCache();
+            }
+        });
+    }
 }
 
 document.getElementById('back_btn').addEventListener('click', function() {
@@ -856,11 +985,11 @@ function handleSearch() {
     const keyword = document.getElementById('search_input').value.toLowerCase().trim();
     if (keyword === "") { renderNameList(globalExcelData); return; }
     const filtered = globalExcelData.filter(row => {
-        return String(getColumnValue(row, 'Họ tên')).toLowerCase().includes(keyword) || 
-               String(getColumnValue(row, 'Tên khác')).toLowerCase().includes(keyword) || 
-               String(getColumnValue(row, 'Tội danh')).toLowerCase().includes(keyword) ||
-               String(getColumnValue(row, 'Số CCCD')).toLowerCase().includes(keyword) ||
-               String(getColumnValue(row, 'TDP')).toLowerCase().includes(keyword);
+        return String(getColumnValue(row, ['Họ tên', 'Họ và tên'])).toLowerCase().includes(keyword) || 
+               String(getColumnValue(row, ['Tên khác'])).toLowerCase().includes(keyword) || 
+               String(getColumnValue(row, ['Tội danh'])).toLowerCase().includes(keyword) ||
+               String(getColumnValue(row, ['Số CCCD', 'CCCD'])).toLowerCase().includes(keyword) ||
+               String(getColumnValue(row, ['TDP', 'Tổ dân phố'])).toLowerCase().includes(keyword);
     });
     renderNameList(filtered);
 }
@@ -902,23 +1031,6 @@ function dinhDangNgayThang(chuoiNgay) {
         return s.substring(0, 2) + "/" + s.substring(2, 4) + "/" + s.substring(4, 8);
     }
     return s;
-}
-
-function parseDateToTimestamp(dateStr) {
-    if (!dateStr) return 0;
-    let s = String(dateStr).trim();
-    if (/^\d{4}$/.test(s)) {
-        return new Date(parseInt(s), 0, 1).getTime();
-    }
-    let parts = s.split(/[\/\-]/);
-    if (parts.length === 3) {
-        let day = parseInt(parts[0], 10);
-        let month = parseInt(parts[1], 10) - 1;
-        let year = parseInt(parts[2], 10);
-        let d = new Date(year, month, day);
-        if (!isNaN(d.getTime())) return d.getTime();
-    }
-    return 0;
 }
 
 document.getElementById('open_qr_modal_btn').addEventListener('click', function() {
@@ -963,80 +1075,20 @@ function onScanQrSuccess(decodedText) {
     const targetName = scannedObj['Họ tên'].toLowerCase().trim();
 
     let matchedItems = globalExcelData.filter(item => {
-        let cccdMatch = targetCCCD && getColumnValue(item, 'Số CCCD') && getColumnValue(item, 'Số CCCD') === targetCCCD;
-        let nameMatch = targetName !== "" && getColumnValue(item, 'Họ tên').toLowerCase().trim() === targetName;
-        let dobMatch = scannedObj['Năm sinh'] && getColumnValue(item, 'Năm sinh') && getColumnValue(item, 'Năm sinh') === scannedObj['Năm sinh'];
+        let cccdMatch = targetCCCD && getColumnValue(item, ['Số CCCD', 'CCCD']) && getColumnValue(item, ['Số CCCD', 'CCCD']) === targetCCCD;
+        let nameMatch = targetName !== "" && getColumnValue(item, ['Họ tên', 'Họ và tên']).toLowerCase().trim() === targetName;
+        let dobMatch = scannedObj['Năm sinh'] && getColumnValue(item, ['Năm sinh', 'Nam sinh']) && getColumnValue(item, ['Năm sinh', 'Nam sinh']) === scannedObj['Năm sinh'];
         return cccdMatch || (nameMatch && dobMatch);
     });
 
     if (matchedItems.length > 0) {
-        let allRecords = [...matchedItems, scannedObj];
-        
-        allRecords.sort((a, b) => {
-            let timeA = parseDateToTimestamp(getColumnValue(a, 'Ngày ký BA') || getColumnValue(a, 'Ngày bắt'));
-            let timeB = parseDateToTimestamp(getColumnValue(b, 'Ngày ký BA') || getColumnValue(b, 'Ngày bắt'));
-            return timeB - timeA; 
-        });
-
-        let newestItem = { ...allRecords[0] };
-        if(!newestItem.LichSuAn) newestItem.LichSuAn = [];
-
-        for (let i = 1; i < allRecords.length; i++) {
-            let older = allRecords[i];
-            let extractedAn = {
-                BA_So: getColumnValue(older, 'Bản án'),
-                BA_Ngay: getColumnValue(older, 'Ngày ký BA'),
-                BA_CoQuan: getColumnValue(older, 'Đơn vị ký BA'),
-                QD_So: getColumnValue(older, 'QĐ THA'),
-                QD_Ngay: getColumnValue(older, 'Ngày ký QĐ THA'),
-                QD_CoQuan: getColumnValue(older, 'Đơn vị ký QĐ THA'),
-                GCN_So: getColumnValue(older, 'GCN CHX'),
-                GCN_Ngay: getColumnValue(older, 'Ngày ký GCN'),
-                GCN_CoQuan: getColumnValue(older, 'Đơn vị ký GCN'),
-                AnPhat: getColumnValue(older, 'Án phạt') || getColumnValue(older, 'Án phạt THA')
-            };
-            
-            if (extractedAn.BA_So || extractedAn.QD_So) {
-                newestItem.LichSuAn.push(extractedAn);
-            }
-
-            if (older.LichSuAn && Array.isArray(older.LichSuAn)) {
-                older.LichSuAn.forEach(subAn => {
-                    newestItem.LichSuAn.push(subAn);
-                });
-            }
-        }
-
-        let oldIdsToRemove = matchedItems;
-        globalExcelData = globalExcelData.filter(item => !oldIdsToRemove.includes(item));
-
-        globalExcelData.unshift(newestItem);
-        saveToLocalCache();
-        renderNameList(globalExcelData);
-
+        let newestItem = { ...matchedItems[0] };
         showDetailForm(newestItem, false);
-        alert("⚠️ Phát hiện đối tượng đã có dữ liệu trước đó!\nHệ thống đã tự động đưa bản án gần nhất ra ngoài và gom các bản án cũ vào lịch sử tiền án.");
-
+        alert("⚠️ Phát hiện đối tượng đã có dữ liệu trong hệ thống!");
     } else {
         showDetailForm(scannedObj, true);
     }
 }
-
-document.getElementById('dup_view_old_btn').addEventListener('click', function() {
-    document.getElementById('duplicate_modal').style.display = 'none';
-    if (existingDuplicateItem) showDetailForm(existingDuplicateItem, false);
-});
-
-document.getElementById('dup_add_new_btn').addEventListener('click', function() {
-    document.getElementById('duplicate_modal').style.display = 'none';
-    if (tempQrObject) showDetailForm(tempQrObject, true);
-});
-
-document.getElementById('dup_cancel_btn').addEventListener('click', function() {
-    document.getElementById('duplicate_modal').style.display = 'none';
-    tempQrObject = null;
-    existingDuplicateItem = null;
-});
 
 document.getElementById('submit_new_person_btn').addEventListener('click', function() {
     let newPerson = {};
@@ -1046,17 +1098,23 @@ document.getElementById('submit_new_person_btn').addEventListener('click', funct
     newPerson['Thường trú'] = document.getElementById('form_thuongtru').value;
     newPerson.LichSuAn = currentViewingItem ? currentViewingItem.LichSuAn : [];
     
-    if (currentViewingItem && currentViewingItem['Số CCCD']) {
-        newPerson['Số CCCD'] = currentViewingItem['Số CCCD'];
+    if (currentViewingItem && getColumnValue(currentViewingItem, ['Số CCCD', 'CCCD'])) {
+        newPerson['Số CCCD'] = getColumnValue(currentViewingItem, ['Số CCCD', 'CCCD']);
     }
 
     for (let id in fieldMapping) {
-        let excelKey = fieldMapping[id];
-        newPerson[excelKey] = document.getElementById(id).value;
+        let excelKey = fieldMapping[id][0];
+        let el = document.getElementById(id);
+        if(el) newPerson[excelKey] = el.value;
     }
 
-    if (currentViewingItem && currentViewingItem['Ảnh']) {
-        newPerson['Ảnh'] = currentViewingItem['Ảnh'];
+    if (currentViewingItem && getColumnValue(currentViewingItem, ['Ảnh', 'Anh'])) {
+        newPerson['Ảnh'] = getColumnValue(currentViewingItem, ['Ảnh', 'Anh']);
+    }
+
+    if (currentViewingItem && currentViewingItem['FileScanGCN']) {
+        newPerson['FileScanGCN'] = currentViewingItem['FileScanGCN'];
+        newPerson['FileScanGCN_Name'] = currentViewingItem['FileScanGCN_Name'];
     }
 
     globalExcelData.unshift(newPerson);
@@ -1081,6 +1139,7 @@ document.getElementById('export_excel_btn').addEventListener('click', function()
             ).join(" || ");
         }
         delete clone.LichSuAn;
+        delete clone.FileScanGCN;
         return clone;
     });
 
