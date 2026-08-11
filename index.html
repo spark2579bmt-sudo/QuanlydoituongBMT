@@ -56,9 +56,9 @@
             border-top: 8px solid var(--police-green);
         }
         
-        .header-top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .header-top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;}
         .header-left-unit { font-weight: 700; color: var(--police-green); font-size: 13px; text-transform: uppercase; }
-        .header-right-action { display: flex; gap: 10px; }
+        .header-right-action { display: flex; gap: 8px; flex-wrap: wrap; }
         
         .header-title { 
             text-align: center; 
@@ -80,13 +80,17 @@
         }
         .header-title h2 { color: var(--police-green); margin: 0; text-transform: uppercase; font-size: 20px; }
         
-        .change-pw-trigger, .export-excel-btn, .clear-cache-btn, .qr-scan-trigger {
-            padding: 8px 14px; background-color: transparent; color: var(--police-green);
+        .change-pw-trigger, .export-excel-btn, .clear-cache-btn, .qr-scan-trigger, .stats-btn, .add-new-btn {
+            padding: 8px 12px; background-color: transparent; color: var(--police-green);
             border: 1px solid var(--police-green); border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;
         }
-        .change-pw-trigger:hover, .export-excel-btn:hover { background-color: var(--police-green); color: white; }
+        .change-pw-trigger:hover, .export-excel-btn:hover, .stats-btn:hover { background-color: var(--police-green); color: white; }
         .qr-scan-trigger { background-color: var(--police-gold); color: white; border-color: var(--police-gold); }
         .qr-scan-trigger:hover { background-color: #b45309; }
+        .add-new-btn { background-color: #10b981; color: white; border-color: #10b981; }
+        .add-new-btn:hover { background-color: #059669; }
+        .stats-btn { background-color: #3b82f6; color: white; border-color: #3b82f6; }
+        .stats-btn:hover { background-color: #2563eb; }
         .clear-cache-btn { color: #dc2626; border-color: #dc2626; }
         .clear-cache-btn:hover { background-color: #dc2626; color: white; }
 
@@ -188,6 +192,17 @@
     </div>
 </div>
 
+<!-- MODAL THỐNG KÊ THEO TDP & TỘI DANH -->
+<div class="modal-overlay" id="stats_modal">
+    <div class="modal-box" style="max-width: 650px; max-height: 85vh; overflow-y: auto;">
+        <h4>📊 Thống kê đối tượng theo TDP & Tội danh</h4>
+        <div id="stats_content" style="font-size: 13px; line-height: 1.6; color: #1f2937; margin-top: 15px;"></div>
+        <div class="modal-actions" style="margin-top: 20px;">
+            <button class="modal-btn btn-cancel" id="stats_close_btn">Đóng</button>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL CẢNH BÁO TRÙNG LẶP -->
 <div class="modal-overlay" id="duplicate_modal">
     <div class="modal-box">
@@ -246,6 +261,8 @@
         <div class="header-top-bar">
             <div class="header-left-unit">⭐ Phần Mềm Quản Lý Đối Tượng</div>
             <div class="header-right-action">
+                <button class="add-new-btn" id="open_manual_add_btn" style="display:none;">➕ Thêm đối tượng</button>
+                <button class="stats-btn" id="open_stats_btn" style="display:none;">📊 Thống kê TDP</button>
                 <button class="qr-scan-trigger" id="open_qr_modal_btn" style="display:none;">🔍 Quét QR CCCD</button>
                 <button class="clear-cache-btn" id="clear_cache_btn" style="display:none;">🗑️ Xóa bộ nhớ</button>
                 <button class="export-excel-btn" id="export_excel_btn" style="display:none;">📤 Xuất Excel</button>
@@ -274,9 +291,12 @@
 
     <!-- PHIẾU CHI TIẾT ĐỐI TƯỢNG -->
     <div class="detail-form" id="detail_form">
-        <div style="display:flex; justify-content:space-between; border-bottom:2px solid var(--police-green); padding-bottom:10px; margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--police-green); padding-bottom:10px; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
             <h3 id="form_title_mode" style="margin:0; color:var(--police-green);">PHIẾU THÔNG TIN CHI TIẾT ĐỐI TƯỢNG</h3>
-            <button class="back-btn" id="back_btn" style="padding:6px 12px; cursor:pointer;">← Trở lại</button>
+            <div style="display:flex; gap:8px;">
+                <button class="photo-btn btn-danger" id="delete_person_btn" style="padding:6px 12px; width:auto;">🗑️ Xóa đối tượng</button>
+                <button class="back-btn" id="back_btn" style="padding:6px 12px; cursor:pointer; font-weight:bold; background:#e5e7eb; border:none; border-radius:4px;">← Trở lại</button>
+            </div>
         </div>
         
         <div class="form-container-flex">
@@ -349,7 +369,7 @@
                     <button type="button" id="add_an_btn" class="photo-btn" style="margin-top:5px;">Thêm vào lịch sử án</button>
                 </div>
 
-                <!-- CHẤP HÀNH ÁN & QUẢN LÝ ĐỊA PHƯƠNG (CÓ ÁN PHẠT PHÍA SAU ĐƠN VỊ KÝ GCN) -->
+                <!-- CHẤP HÀNH ÁN & QUẢN LÝ ĐỊA PHƯƠNG -->
                 <div class="section-separator">Chấp hành án & Quản lý địa phương</div>
                 <div class="form-field"><label>GCN CHX</label><input type="text" id="form_gcnchx"></div>
                 <div class="form-field"><label>Ngày ký GCN</label><input type="text" id="form_ngaykygcn"></div>
@@ -393,7 +413,7 @@
 </div>
 
 <script>
-const DEFAULT_PASSWORD = "Admin@123"; // Mật khẩu mặc định mạnh đáp ứng đủ tiêu chuẩn
+const DEFAULT_PASSWORD = "Admin@123"; 
 let globalExcelData = [];
 let currentViewingItem = null;
 let isAddingNewMode = false;
@@ -446,7 +466,6 @@ const fieldMapping = {
 
 function getStoredPassword() { return localStorage.getItem('app_security_password') || DEFAULT_PASSWORD; }
 
-// Hàm kiểm tra mật khẩu mạnh: ít nhất 8 ký tự, có chữ, số và ký tự đặc biệt
 function validateStrongPassword(password) {
     const minLength = password.length >= 8;
     const hasLetter = /[a-zA-Z]/.test(password);
@@ -502,7 +521,10 @@ function activateMainSystem() {
     document.getElementById('export_excel_btn').style.display = 'inline-block';
     document.getElementById('clear_cache_btn').style.display = 'inline-block';
     document.getElementById('open_qr_modal_btn').style.display = 'inline-block';
+    document.getElementById('open_manual_add_btn').style.display = 'inline-block';
+    document.getElementById('open_stats_btn').style.display = 'inline-block';
 }
+
 document.getElementById('clear_cache_btn').addEventListener('click', () => {
     if(confirm("Xóa toàn bộ bộ nhớ tạm hệ thống?")) { localStorage.removeItem('hoso_excel_cache'); location.reload(); }
 });
@@ -533,6 +555,85 @@ document.getElementById('excel_file').addEventListener('change', function(event)
         activateMainSystem(); saveToLocalCache(); renderNameList(globalExcelData);
     };
     reader.readAsArrayBuffer(file);
+});
+
+// NÚT THÊM ĐỐI TƯỢNG THỦ CÔNG TỪ MÀN HÌNH CHÍNH
+document.getElementById('open_manual_add_btn').addEventListener('click', function() {
+    let emptyItem = { 'LichSuAn': [] };
+    showDetailForm(emptyItem, true);
+    document.getElementById('form_title_mode').textContent = "➕ THÊM MỚI ĐỐI TƯỢNG THỦ CÔNG";
+});
+
+// NÚT XÓA ĐỐI TƯỢNG (CÓ HỎI LẠI TRƯỚC KHI XÓA)[cite: 4]
+document.getElementById('delete_person_btn').addEventListener('click', function() {
+    if (!currentViewingItem) return;
+    let name = getColumnValue(currentViewingItem, 'Họ tên') || "đối tượng này";
+    let confirmDelete = confirm(`⚠️ Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ của đối tượng "${name}" không?`);
+    if (confirmDelete) {
+        // Xóa đối tượng khỏi mảng globalExcelData
+        globalExcelData = globalExcelData.filter(item => item !== currentViewingItem);
+        saveToLocalCache();
+        alert("Đã xóa đối tượng thành công!");
+        document.getElementById('detail_form').style.display = 'none';
+        document.getElementById('results_list').style.display = 'block';
+        currentViewingItem = null;
+        isAddingNewMode = false;
+        renderNameList(globalExcelData);
+    }
+});
+
+// TÍNH NĂNG THỐNG KÊ THEO TDP, THEO TỘI DANH TỪNG TDP[cite: 4]
+document.getElementById('open_stats_btn').addEventListener('click', function() {
+    const statsModal = document.getElementById('stats_modal');
+    const statsContent = document.getElementById('stats_content');
+    
+    if (globalExcelData.length === 0) {
+        statsContent.innerHTML = "<p style='color:red;'>Chưa có dữ liệu để thống kê!</p>";
+        statsModal.style.display = 'flex';
+        return;
+    }
+
+    let statsMap = {};
+    globalExcelData.forEach(item => {
+        let tdp = String(getColumnValue(item, 'TDP')).trim();
+        if (!tdp) tdp = "Chưa rõ TDP";
+        let toidanh = String(getColumnValue(item, 'Tội danh')).trim();
+        if (!toidanh) toidanh = "Chưa xác định tội danh";
+
+        if (!statsMap[tdp]) {
+            statsMap[tdp] = { total: 0, crimes: {} };
+        }
+        statsMap[tdp].total += 1;
+        
+        if (!statsMap[tdp].crimes[toidanh]) {
+            statsMap[tdp].crimes[toidanh] = 0;
+        }
+        statsMap[tdp].crimes[toidanh] += 1;
+    });
+
+    let html = `<p style="font-weight:bold; margin-bottom:10px;">Tổng số đối tượng quản lý: <span style="color:var(--police-green); font-size:16px;">${globalExcelData.length}</span></p>`;
+    
+    for (let tdp in statsMap) {
+        html += `
+            <div style="border: 1px solid #d1d5db; border-radius: 4px; padding: 12px; margin-bottom: 12px; background: #fdfdfd;">
+                <div style="font-weight: bold; color: var(--police-green); font-size: 14px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 8px; display: flex; justify-content: space-between;">
+                    <span>🏠 ${tdp}</span>
+                    <span style="background: #e1efeb; padding: 2px 8px; border-radius: 10px; font-size: 12px;">Tổng: ${statsMap[tdp].total} đối tượng</span>
+                </div>
+                <ul style="margin: 0; padding-left: 20px; font-size: 13px;">
+        `;
+        for (let crime in statsMap[tdp].crimes) {
+            html += `<li style="margin-bottom: 4px;"><b>${crime}:</b> <span style="color: #b45309; font-weight: bold;">${statsMap[tdp].crimes[crime]}</span> đối tượng</li>`;
+        }
+        html += `</ul></div>`;
+    }
+
+    statsContent.innerHTML = html;
+    statsModal.style.display = 'flex';
+});
+
+document.getElementById('stats_close_btn').addEventListener('click', () => {
+    document.getElementById('stats_modal').style.display = 'none';
 });
 
 // HIỂN THỊ DANH SÁCH KÈM ẢNH ĐẠI DIỆN THU NHỎ
@@ -590,11 +691,11 @@ function updateCallButton(phoneNumber) {
 }
 document.getElementById('form_sodt').addEventListener('input', function() { updateCallButton(this.value); });
 
-function showDetailForm(item, isNewFromQR = false) {
+function showDetailForm(item, isNewMode = false) {
     currentViewingItem = item;
     if(!currentViewingItem.LichSuAn) currentViewingItem.LichSuAn = [];
     
-    isAddingNewMode = isNewFromQR;
+    isAddingNewMode = isNewMode;
     document.getElementById('results_list').style.display = 'none';
     
     document.getElementById('form_hoten').value = getColumnValue(item, 'Họ tên');
@@ -611,12 +712,14 @@ function showDetailForm(item, isNewFromQR = false) {
     renderPhoto(getColumnValue(item, 'Ảnh'));
     renderLichSuAn(item);
 
-    if (isNewFromQR) {
-        document.getElementById('form_title_mode').textContent = "🆕 TIẾN HÀNH THÊM ĐỐI TƯỢNG MỚI TỪ QR";
+    if (isNewMode) {
+        document.getElementById('form_title_mode').textContent = "🆕 THÊM / CẬP NHẬT ĐỐI TƯỢNG";
         document.getElementById('action_save_container').style.display = 'block';
+        document.getElementById('delete_person_btn').style.display = 'none'; // Ẩn nút xóa khi đang thêm mới
     } else {
         document.getElementById('form_title_mode').textContent = "PHIẾU THÔNG TIN CHI TIẾT ĐỐI TƯỢNG";
         document.getElementById('action_save_container').style.display = 'none';
+        document.getElementById('delete_person_btn').style.display = 'inline-block';
     }
 
     document.getElementById('detail_form').style.display = 'block';
@@ -801,6 +904,23 @@ function dinhDangNgayThang(chuoiNgay) {
     return s;
 }
 
+function parseDateToTimestamp(dateStr) {
+    if (!dateStr) return 0;
+    let s = String(dateStr).trim();
+    if (/^\d{4}$/.test(s)) {
+        return new Date(parseInt(s), 0, 1).getTime();
+    }
+    let parts = s.split(/[\/\-]/);
+    if (parts.length === 3) {
+        let day = parseInt(parts[0], 10);
+        let month = parseInt(parts[1], 10) - 1;
+        let year = parseInt(parts[2], 10);
+        let d = new Date(year, month, day);
+        if (!isNaN(d.getTime())) return d.getTime();
+    }
+    return 0;
+}
+
 document.getElementById('open_qr_modal_btn').addEventListener('click', function() {
     document.getElementById('qr_modal').style.display = 'flex';
     html5QrCodeScanner = new Html5Qrcode("qr_reader_view");
@@ -842,17 +962,61 @@ function onScanQrSuccess(decodedText) {
     const targetCCCD = scannedObj['Số CCCD'];
     const targetName = scannedObj['Họ tên'].toLowerCase().trim();
 
-    existingDuplicateItem = globalExcelData.find(item => {
-        let cccdExist = getColumnValue(item, 'Số CCCD') && getColumnValue(item, 'Số CCCD') === targetCCCD;
-        let nameExist = targetName !== "" && getColumnValue(item, 'Họ tên').toLowerCase().trim() === targetName;
-        return cccdExist || nameExist;
+    let matchedItems = globalExcelData.filter(item => {
+        let cccdMatch = targetCCCD && getColumnValue(item, 'Số CCCD') && getColumnValue(item, 'Số CCCD') === targetCCCD;
+        let nameMatch = targetName !== "" && getColumnValue(item, 'Họ tên').toLowerCase().trim() === targetName;
+        let dobMatch = scannedObj['Năm sinh'] && getColumnValue(item, 'Năm sinh') && getColumnValue(item, 'Năm sinh') === scannedObj['Năm sinh'];
+        return cccdMatch || (nameMatch && dobMatch);
     });
 
-    if (existingDuplicateItem) {
-        tempQrObject = scannedObj;
-        document.getElementById('duplicate_msg').innerHTML = 
-            `Đối tượng <b>${scannedObj['Họ tên']}</b> ${targetCCCD ? '(CCCD: ' + targetCCCD + ')' : ''} đã có trong hệ thống!`;
-        document.getElementById('duplicate_modal').style.display = 'flex';
+    if (matchedItems.length > 0) {
+        let allRecords = [...matchedItems, scannedObj];
+        
+        allRecords.sort((a, b) => {
+            let timeA = parseDateToTimestamp(getColumnValue(a, 'Ngày ký BA') || getColumnValue(a, 'Ngày bắt'));
+            let timeB = parseDateToTimestamp(getColumnValue(b, 'Ngày ký BA') || getColumnValue(b, 'Ngày bắt'));
+            return timeB - timeA; 
+        });
+
+        let newestItem = { ...allRecords[0] };
+        if(!newestItem.LichSuAn) newestItem.LichSuAn = [];
+
+        for (let i = 1; i < allRecords.length; i++) {
+            let older = allRecords[i];
+            let extractedAn = {
+                BA_So: getColumnValue(older, 'Bản án'),
+                BA_Ngay: getColumnValue(older, 'Ngày ký BA'),
+                BA_CoQuan: getColumnValue(older, 'Đơn vị ký BA'),
+                QD_So: getColumnValue(older, 'QĐ THA'),
+                QD_Ngay: getColumnValue(older, 'Ngày ký QĐ THA'),
+                QD_CoQuan: getColumnValue(older, 'Đơn vị ký QĐ THA'),
+                GCN_So: getColumnValue(older, 'GCN CHX'),
+                GCN_Ngay: getColumnValue(older, 'Ngày ký GCN'),
+                GCN_CoQuan: getColumnValue(older, 'Đơn vị ký GCN'),
+                AnPhat: getColumnValue(older, 'Án phạt') || getColumnValue(older, 'Án phạt THA')
+            };
+            
+            if (extractedAn.BA_So || extractedAn.QD_So) {
+                newestItem.LichSuAn.push(extractedAn);
+            }
+
+            if (older.LichSuAn && Array.isArray(older.LichSuAn)) {
+                older.LichSuAn.forEach(subAn => {
+                    newestItem.LichSuAn.push(subAn);
+                });
+            }
+        }
+
+        let oldIdsToRemove = matchedItems;
+        globalExcelData = globalExcelData.filter(item => !oldIdsToRemove.includes(item));
+
+        globalExcelData.unshift(newestItem);
+        saveToLocalCache();
+        renderNameList(globalExcelData);
+
+        showDetailForm(newestItem, false);
+        alert("⚠️ Phát hiện đối tượng đã có dữ liệu trước đó!\nHệ thống đã tự động đưa bản án gần nhất ra ngoài và gom các bản án cũ vào lịch sử tiền án.");
+
     } else {
         showDetailForm(scannedObj, true);
     }
@@ -903,6 +1067,7 @@ document.getElementById('submit_new_person_btn').addEventListener('click', funct
     currentViewingItem = newPerson;
     document.getElementById('action_save_container').style.display = 'none';
     document.getElementById('form_title_mode').textContent = "PHIẾU THÔNG TIN CHI TIẾT ĐỐI TƯỢNG";
+    document.getElementById('delete_person_btn').style.display = 'inline-block';
 });
 
 document.getElementById('export_excel_btn').addEventListener('click', function() {
