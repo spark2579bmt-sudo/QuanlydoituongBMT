@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Tra Cứu & Quản Lý Hồ Sơ Chuyên Ngành</title>
+    <title>Phần Mềm Quản Lý Đối Tượng Tổ Dân Phố 6 - 7 Thành Công</title>
     
     <!-- Thư viện Xuất Excel & Quét QR Code -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -60,7 +60,6 @@
         .header-left-unit { font-weight: 700; color: var(--police-green); font-size: 13px; text-transform: uppercase; }
         .header-right-action { display: flex; gap: 10px; }
         
-        /* HEADER VỚI LOGO CÓ 2 NGÔI SAO 5 CÁNH */
         .header-title { 
             text-align: center; 
             margin-bottom: 25px; 
@@ -76,12 +75,11 @@
         .star-icon-header {
             width: 32px;
             height: 32px;
-            fill: #f59e0b; /* Màu vàng kim */
+            fill: #f59e0b;
             filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.2));
         }
-        .header-title h2 { color: var(--police-green); margin: 0; text-transform: uppercase; font-size: 22px; }
+        .header-title h2 { color: var(--police-green); margin: 0; text-transform: uppercase; font-size: 20px; }
         
-        /* NÚT BẤM VÀ THAO TÁC */
         .change-pw-trigger, .export-excel-btn, .clear-cache-btn, .qr-scan-trigger {
             padding: 8px 14px; background-color: transparent; color: var(--police-green);
             border: 1px solid var(--police-green); border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;
@@ -100,13 +98,21 @@
         .search-input { flex: 1; padding: 12px 15px; border: 1px solid #babcbb; border-radius: 4px; font-size: 16px; }
         .search-btn { padding: 12px 28px; background-color: var(--police-green); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; text-transform: uppercase; }
         
+        /* DANH SÁCH KÈM ẢNH ĐẠI DIỆN */
         .results-list { margin-top: 20px; list-style: none; padding: 0; }
         .results-list li {
-            padding: 14px 18px; background: #ffffff; border: 1px solid #e5e7eb;
+            padding: 10px 15px; background: #ffffff; border: 1px solid #e5e7eb;
             border-left: 4px solid var(--police-gold); margin-bottom: 10px; border-radius: 4px;
             cursor: pointer; font-weight: 600; color: var(--police-green);
+            display: flex; align-items: center; gap: 15px; transition: background 0.2s;
         }
         .results-list li:hover { background: #f4f6f5; }
+        .list-item-avatar {
+            width: 40px; height: 50px; border-radius: 3px; object-fit: cover;
+            border: 1px solid #ccc; background: #e5e7eb; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 9px; color: #6b7280; text-align: center;
+        }
+        .list-item-info { flex: 1; display: flex; flex-direction: column; gap: 3px; }
         
         /* PHIẾU THÔNG TIN CHI TIẾT */
         .detail-form { display: none; margin-top: 25px; padding: 25px; border: 1px solid #d1d5db; border-radius: 6px; background: #ffffff; position: relative; }
@@ -171,14 +177,14 @@
             <circle cx="50" cy="50" r="42" fill="#e11d48" stroke="#f59e0b" stroke-width="2"/>
             <polygon points="50,15 59,38 84,38 64,53 72,76 50,62 28,76 36,53 16,38 41,38" fill="#f59e0b" stroke="#fff" stroke-width="0.5"/>
         </svg>
-        <h3>Hệ Thống Quản Lý Hồ Sơ</h3>
+        <h3>Phần Mềm Quản Lý Đối Tượng</h3>
         <p>Yêu cầu xác thực quyền truy cập</p>
         <div class="auth-field">
-            <label>Nhập Mã PIN</label>
-            <input type="password" id="password_input" class="auth-input" placeholder="••••••" autofocus />
+            <label>Nhập Mật Khẩu</label>
+            <input type="password" id="password_input" class="auth-input" placeholder="••••••••" autofocus />
         </div>
         <button class="auth-btn" id="login_btn">Đăng Nhập</button>
-        <div class="error-msg" id="error_msg">⚠️ Mã PIN không chính xác!</div>
+        <div class="error-msg" id="error_msg">⚠️ Mật khẩu không chính xác!</div>
     </div>
 </div>
 
@@ -195,13 +201,14 @@
     </div>
 </div>
 
-<!-- MODAL ĐỔI MÃ PIN -->
+<!-- MODAL ĐỔI MẬT KHẨU -->
 <div class="modal-overlay" id="password_modal">
     <div class="modal-box">
-        <h4>Thay đổi mã PIN bảo mật</h4>
-        <div class="form-field" style="margin-bottom:10px;"><label>Mã PIN hiện tại</label><input type="password" id="pw_current" style="padding:8px;"></div>
-        <div class="form-field" style="margin-bottom:10px;"><label>Mã PIN mới</label><input type="password" id="pw_new" style="padding:8px;"></div>
-        <div class="form-field" style="margin-bottom:10px;"><label>Xác nhận mã PIN mới</label><input type="password" id="pw_confirm" style="padding:8px;"></div>
+        <h4>Thay đổi mật khẩu bảo mật</h4>
+        <p style="font-size: 11px; color: #6b7280; margin-top:-5px; margin-bottom:12px;">Mật khẩu phải từ 8 ký tự trở lên, bao gồm chữ, số và ký tự đặc biệt.</p>
+        <div class="form-field" style="margin-bottom:10px;"><label>Mật khẩu hiện tại</label><input type="password" id="pw_current" style="padding:8px;"></div>
+        <div class="form-field" style="margin-bottom:10px;"><label>Mật khẩu mới</label><input type="password" id="pw_new" style="padding:8px;"></div>
+        <div class="form-field" style="margin-bottom:10px;"><label>Xác nhận mật khẩu mới</label><input type="password" id="pw_confirm" style="padding:8px;"></div>
         <div class="modal-actions">
             <button class="modal-btn btn-cancel" id="modal_cancel_btn">Hủy</button>
             <button class="modal-btn btn-save" id="modal_save_btn">Cập nhật</button>
@@ -237,19 +244,18 @@
 <div class="container">
     <div class="header-title">
         <div class="header-top-bar">
-            <div class="header-left-unit">⭐ Hệ Thống Quản Lý Hồ Sơ Điện Tử</div>
+            <div class="header-left-unit">⭐ Phần Mềm Quản Lý Đối Tượng</div>
             <div class="header-right-action">
                 <button class="qr-scan-trigger" id="open_qr_modal_btn" style="display:none;">🔍 Quét QR CCCD</button>
                 <button class="clear-cache-btn" id="clear_cache_btn" style="display:none;">🗑️ Xóa bộ nhớ</button>
                 <button class="export-excel-btn" id="export_excel_btn" style="display:none;">📤 Xuất Excel</button>
-                <button class="change-pw-trigger" id="open_pw_modal_btn">⚙️ Đổi PIN</button>
+                <button class="change-pw-trigger" id="open_pw_modal_btn">⚙️ Đổi Mật Khẩu</button>
             </div>
         </div>
         
-        <!-- LOGO TIÊU ĐỀ KÈM 2 NGÔI SAO 5 CÁNH -->
         <div class="header-title-flex">
             <svg class="star-icon-header" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-            <h2>Hệ Thống Tra Cứu & Quản Lý Hồ Sơ Chuyên Ngành</h2>
+            <h2>Phần Mềm Quản Lý Đối Tượng Tổ Dân Phố 6 - 7 Thành Công</h2>
             <svg class="star-icon-header" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
         </div>
     </div>
@@ -303,7 +309,7 @@
                 <div class="form-field span-2"><label>Nơi cư trú</label><input type="text" id="form_noicutru"></div>
                 <div class="form-field"><label>TDP</label><input type="text" id="form_tdp"></div>
 
-                <div class="section-separator">Quá trình tư pháp & Bản án</div>
+                <div class="section-separator">Quá trình tư pháp & Bản án hiện tại</div>
                 <div class="form-field"><label>Ngày bắt</label><input type="text" id="form_ngaybat"></div>
                 <div class="form-field"><label>Bản án</label><input type="text" id="form_banan"></div>
                 <div class="form-field"><label>Ngày ký BA</label><input type="text" id="form_ngaykyba"></div>
@@ -312,10 +318,44 @@
                 <div class="form-field"><label>Ngày ký QĐ THA</label><input type="text" id="form_ngaykyqdtha"></div>
                 <div class="form-field span-2"><label>Đơn vị ký QĐ THA</label><input type="text" id="form_donvikyqdtha"></div>
 
+                <!-- LỊCH SỬ CHẤP HÀNH ÁN (CÁC TIỀN ÁN TRƯỚC) -->
+                <div class="section-separator">Lịch sử chấp hành án (Các tiền án trước)</div>
+                <div id="history_container" class="full-width"></div>
+                <div class="full-width" style="padding:15px; border: 1px dashed var(--police-green); border-radius: 4px; background: #f9fafb;">
+                    <label style="color:var(--police-green); margin-bottom:10px; font-size:13px;">➕ Thêm lần án / Tiền án mới</label>
+                    
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:10px;">
+                        <div class="form-field"><label>Số bản án</label><input type="text" id="new_ba_so" placeholder="Số bản án"></div>
+                        <div class="form-field"><label>Ngày ban hành BA</label><input type="text" id="new_ba_ngay" placeholder="DD/MM/YYYY"></div>
+                        <div class="form-field"><label>Cơ quan ban hành BA</label><input type="text" id="new_ba_coquan" placeholder="Tên cơ quan"></div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:10px;">
+                        <div class="form-field"><label>Số QĐ THA</label><input type="text" id="new_qd_so" placeholder="Số QĐ THA"></div>
+                        <div class="form-field"><label>Ngày ban hành QĐ</label><input type="text" id="new_qd_ngay" placeholder="DD/MM/YYYY"></div>
+                        <div class="form-field"><label>Cơ quan ban hành QĐ</label><input type="text" id="new_qd_coquan" placeholder="Tên cơ quan"></div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:10px;">
+                        <div class="form-field"><label>Số GCN CHX</label><input type="text" id="new_gcn_so" placeholder="Số GCN CHX"></div>
+                        <div class="form-field"><label>Ngày ban hành GCN</label><input type="text" id="new_gcn_ngay" placeholder="DD/MM/YYYY"></div>
+                        <div class="form-field"><label>Cơ quan ban hành GCN</label><input type="text" id="new_gcn_coquan" placeholder="Tên cơ quan"></div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr; gap:10px; margin-bottom:10px;">
+                        <div class="form-field"><label>Án phạt</label><input type="text" id="new_anphat" placeholder="Ví dụ: 3 năm tù, tù treo..."></div>
+                    </div>
+
+                    <button type="button" id="add_an_btn" class="photo-btn" style="margin-top:5px;">Thêm vào lịch sử án</button>
+                </div>
+
+                <!-- CHẤP HÀNH ÁN & QUẢN LÝ ĐỊA PHƯƠNG (CÓ ÁN PHẠT PHÍA SAU ĐƠN VỊ KÝ GCN) -->
                 <div class="section-separator">Chấp hành án & Quản lý địa phương</div>
                 <div class="form-field"><label>GCN CHX</label><input type="text" id="form_gcnchx"></div>
                 <div class="form-field"><label>Ngày ký GCN</label><input type="text" id="form_ngaykygcn"></div>
-                <div class="form-field span-2"><label>Đơn vị ký GCN</label><input type="text" id="form_donvikygcn"></div>
+                <div class="form-field"><label>Đơn vị ký GCN</label><input type="text" id="form_donvikygcn"></div>
+                <div class="form-field span-2"><label>Án phạt (Chấp hành án)</label><input type="text" id="form_anphat_tha" placeholder="Án phạt phần chấp hành án"></div>
+                
                 <div class="form-field"><label>Ngày trình diện</label><input type="text" id="form_ngaytrinhdien"></div>
                 <div class="form-field"><label>Ngày BĐ chấp hành</label><input type="text" id="form_ngaybdchaphanh"></div>
                 <div class="form-field"><label>Ngày CH xong</label><input type="text" id="form_ngaychxong"></div>
@@ -341,7 +381,7 @@
                 <div class="section-separator">Thông tin chung</div>
                 <div class="form-field full-width"><label>Hình thức quản lý</label><input type="text" id="form_hinhthucquanly"></div>
                 <div class="form-field full-width highlight-input"><label>Tội danh</label><input type="text" id="form_toidanh"></div>
-                <div class="form-field full-width"><label>Án phạt</label><input type="text" id="form_anphat"></div>
+                <div class="form-field full-width"><label>Án phạt (Chung)</label><input type="text" id="form_anphat"></div>
                 <div class="form-field full-width"><label>Ghi chú</label><textarea id="form_ghichu"></textarea></div>
                 
                 <div class="form-field full-width" id="action_save_container" style="display:none;">
@@ -353,7 +393,7 @@
 </div>
 
 <script>
-const DEFAULT_PIN = "123456";
+const DEFAULT_PASSWORD = "Admin@123"; // Mật khẩu mặc định mạnh đáp ứng đủ tiêu chuẩn
 let globalExcelData = [];
 let currentViewingItem = null;
 let isAddingNewMode = false;
@@ -380,6 +420,7 @@ const fieldMapping = {
     'form_gcnchx': 'GCN CHX',
     'form_ngaykygcn': 'Ngày ký GCN',
     'form_donvikygcn': 'Đơn vị ký GCN',
+    'form_anphat_tha': 'Án phạt THA',
     'form_ngaytrinhdien': 'Ngày trình diện',
     'form_ngaybdchaphanh': 'Ngày BĐ chấp hành',
     'form_ngaychxong': 'Ngày CH xong',
@@ -403,8 +444,16 @@ const fieldMapping = {
     'form_ghichu': 'Ghi chú'
 };
 
-// QUẢN LÝ MÃ PIN
-function getStoredPassword() { return localStorage.getItem('app_security_pin') || DEFAULT_PIN; }
+function getStoredPassword() { return localStorage.getItem('app_security_password') || DEFAULT_PASSWORD; }
+
+// Hàm kiểm tra mật khẩu mạnh: ít nhất 8 ký tự, có chữ, số và ký tự đặc biệt
+function validateStrongPassword(password) {
+    const minLength = password.length >= 8;
+    const hasLetter = /[a-zA-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[^a-zA-Z0-9]/.test(password);
+    return minLength && hasLetter && hasNumber && hasSpecial;
+}
 
 function checkLogin() {
     if (document.getElementById('password_input').value === getStoredPassword()) {
@@ -423,14 +472,22 @@ document.getElementById('modal_save_btn').addEventListener('click', () => {
     let current = document.getElementById('pw_current').value;
     let newP = document.getElementById('pw_new').value;
     let conf = document.getElementById('pw_confirm').value;
-    if (current !== getStoredPassword()) { alert("Mã PIN cũ không chính xác!"); return; }
-    if (newP !== conf || newP.trim() === "") { alert("Mã PIN mới không trùng khớp!"); return; }
-    localStorage.setItem('app_security_pin', newP);
-    alert("Đổi mã PIN thành công!");
+    
+    if (current !== getStoredPassword()) { alert("Mật khẩu cũ không chính xác!"); return; }
+    if (newP !== conf) { alert("Xác nhận mật khẩu mới không trùng khớp!"); return; }
+    if (!validateStrongPassword(newP)) {
+        alert("Mật khẩu mới không đủ mạnh!\nYêu cầu: Ít nhất 8 ký tự, bao gồm chữ cái, số và ký tự đặc biệt.");
+        return;
+    }
+    
+    localStorage.setItem('app_security_password', newP);
+    alert("Đổi mật khẩu thành công!");
     document.getElementById('password_modal').style.display = 'none';
+    document.getElementById('pw_current').value = "";
+    document.getElementById('pw_new').value = "";
+    document.getElementById('pw_confirm').value = "";
 });
 
-// XỬ LÝ DỮ LIỆU & BỘ NHỚ LƯU TRỮ
 function saveToLocalCache() { localStorage.setItem('hoso_excel_cache', JSON.stringify(globalExcelData)); }
 function checkAndLoadLocalCache() {
     const cachedData = localStorage.getItem('hoso_excel_cache');
@@ -452,7 +509,6 @@ document.getElementById('clear_cache_btn').addEventListener('click', () => {
 
 function getColumnValue(row, columnName) { return row[columnName] !== undefined ? row[columnName] : ""; }
 
-// ĐỌC FILE EXCEL BẠN TẢI LÊN
 document.getElementById('excel_file').addEventListener('change', function(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -471,6 +527,7 @@ document.getElementById('excel_file').addEventListener('change', function(event)
                     newRow[key] = `${d}/${m}/${row[key].getUTCFullYear()}`;
                 } else { newRow[key] = row[key]; }
             }
+            if(!newRow.LichSuAn) newRow.LichSuAn = [];
             return newRow;
         });
         activateMainSystem(); saveToLocalCache(); renderNameList(globalExcelData);
@@ -478,29 +535,46 @@ document.getElementById('excel_file').addEventListener('change', function(event)
     reader.readAsArrayBuffer(file);
 });
 
-// HIỂN THỊ DANH SÁCH
+// HIỂN THỊ DANH SÁCH KÈM ẢNH ĐẠI DIỆN THU NHỎ
 function renderNameList(data) {
     const listContainer = document.getElementById('results_list');
     listContainer.innerHTML = "";
     document.getElementById('detail_form').style.display = 'none';
     listContainer.style.display = 'block';
     if (data.length === 0) {
-        listContainer.innerHTML = "<li style='color:#dc2626; text-align:center;'>Không tìm thấy đối tượng phù hợp!</li>";
+        listContainer.innerHTML = "<li style='color:#dc2626; text-align:center; display:block;'>Không tìm thấy đối tượng phù hợp!</li>";
         return;
     }
     data.forEach((item) => {
         let li = document.createElement('li');
+        
+        let photoData = getColumnValue(item, 'Ảnh');
+        let avatarDiv = document.createElement('div');
+        avatarDiv.className = 'list-item-avatar';
+        if (photoData && photoData.trim() !== "") {
+            avatarDiv.innerHTML = `<img src="${photoData}" style="width:100%; height:100%; object-fit:cover;">`;
+        } else {
+            avatarDiv.textContent = "Không ảnh";
+        }
+
+        let infoDiv = document.createElement('div');
+        infoDiv.className = 'list-item-info';
+        
         let txtName = getColumnValue(item, 'Họ tên') || "Không rõ họ tên";
         let txtAlias = getColumnValue(item, 'Tên khác') ? ` (${getColumnValue(item, 'Tên khác')})` : "";
         let txtTdp = getColumnValue(item, 'TDP') ? ` - TDP: ${getColumnValue(item, 'TDP')}` : "";
         let txtCccd = getColumnValue(item, 'Số CCCD') ? ` [CCCD: ${getColumnValue(item, 'Số CCCD')}]` : "";
-        li.textContent = txtName + txtAlias + txtTdp + txtCccd;
+        
+        infoDiv.textContent = txtName + txtAlias + txtTdp + txtCccd;
+
+        li.appendChild(avatarDiv);
+        li.appendChild(infoDiv);
+
         li.addEventListener('click', () => showDetailForm(item, false));
         listContainer.appendChild(li);
     });
 }
 
-// XỬ LÝ SỐ ĐIỆN THOẠI & NÚT GỌI
 function updateCallButton(phoneNumber) {
     const callBtn = document.getElementById('call_trigger_btn');
     const cleanNumber = String(phoneNumber).replace(/[^0-9+]/g, '');
@@ -516,9 +590,10 @@ function updateCallButton(phoneNumber) {
 }
 document.getElementById('form_sodt').addEventListener('input', function() { updateCallButton(this.value); });
 
-// HIỂN THỊ FORMDETAIL
 function showDetailForm(item, isNewFromQR = false) {
     currentViewingItem = item;
+    if(!currentViewingItem.LichSuAn) currentViewingItem.LichSuAn = [];
+    
     isAddingNewMode = isNewFromQR;
     document.getElementById('results_list').style.display = 'none';
     
@@ -534,6 +609,7 @@ function showDetailForm(item, isNewFromQR = false) {
 
     updateCallButton(getColumnValue(item, 'Số ĐTDĐ'));
     renderPhoto(getColumnValue(item, 'Ảnh'));
+    renderLichSuAn(item);
 
     if (isNewFromQR) {
         document.getElementById('form_title_mode').textContent = "🆕 TIẾN HÀNH THÊM ĐỐI TƯỢNG MỚI TỪ QR";
@@ -545,6 +621,88 @@ function showDetailForm(item, isNewFromQR = false) {
 
     document.getElementById('detail_form').style.display = 'block';
 }
+
+// XỬ LÝ RENDER & QUẢN LÝ LỊCH SỬ ÁN CHI TIẾT
+function renderLichSuAn(item) {
+    const container = document.getElementById('history_container');
+    container.innerHTML = "";
+    
+    let history = item.LichSuAn || [];
+    if (history.length === 0) {
+        container.innerHTML = `<div style="font-size:12px; color:#6b7280; font-style:italic; padding:5px 0;">Chưa có lịch sử tiền án bổ sung nào.</div>`;
+        return;
+    }
+
+    history.forEach((an, index) => {
+        let div = document.createElement('div');
+        div.style = "border: 1px solid #d1d5db; padding: 12px; margin-bottom: 10px; border-radius: 4px; background: #fdfdfd; position: relative;";
+        div.innerHTML = `
+            <div style="font-weight:bold; color:var(--police-green); margin-bottom:8px; font-size:12px; text-transform: uppercase;">Lần án / Tiền án thứ ${index + 1}</div>
+            <div style="display:grid; grid-template-columns: 1fr; gap:6px; font-size:12px;">
+                <div style="background:#f3f4f6; padding:4px 8px; border-radius:3px;">
+                    <b>⚖️ Bản án:</b> Số: <b>${an.BA_So || "---"}</b> | Ngày: ${an.BA_Ngay || "---"} | Cơ quan: ${an.BA_CoQuan || "---"}
+                </div>
+                <div style="background:#f3f4f6; padding:4px 8px; border-radius:3px;">
+                    <b>📜 QĐ THA:</b> Số: <b>${an.QD_So || "---"}</b> | Ngày: ${an.QD_Ngay || "---"} | Cơ quan: ${an.QD_CoQuan || "---"}
+                </div>
+                <div style="background:#f3f4f6; padding:4px 8px; border-radius:3px;">
+                    <b>✅ GCN CHX:</b> Số: <b>${an.GCN_So || "---"}</b> | Ngày: ${an.GCN_Ngay || "---"} | Cơ quan: ${an.GCN_CoQuan || "---"}
+                </div>
+                <div style="background:#fefce8; padding:4px 8px; border-radius:3px; border-left:3px solid var(--police-gold);">
+                    <b>⚡ Án phạt:</b> ${an.AnPhat || "---"}
+                </div>
+            </div>
+            <button type="button" onclick="removeAn(${index})" style="position:absolute; top:8px; right:10px; background:none; border:none; color:red; cursor:pointer; font-weight:bold; font-size:12px;">❌ Xóa</button>
+        `;
+        container.appendChild(div);
+    });
+}
+
+document.getElementById('add_an_btn').addEventListener('click', function() {
+    if (!currentViewingItem) return;
+    if(!currentViewingItem.LichSuAn) currentViewingItem.LichSuAn = [];
+    
+    let newAn = {
+        BA_So: document.getElementById('new_ba_so').value,
+        BA_Ngay: document.getElementById('new_ba_ngay').value,
+        BA_CoQuan: document.getElementById('new_ba_coquan').value,
+        QD_So: document.getElementById('new_qd_so').value,
+        QD_Ngay: document.getElementById('new_qd_ngay').value,
+        QD_CoQuan: document.getElementById('new_qd_coquan').value,
+        GCN_So: document.getElementById('new_gcn_so').value,
+        GCN_Ngay: document.getElementById('new_gcn_ngay').value,
+        GCN_CoQuan: document.getElementById('new_gcn_coquan').value,
+        AnPhat: document.getElementById('new_anphat').value
+    };
+    
+    if(!newAn.BA_So && !newAn.QD_So) {
+        alert("Vui lòng nhập ít nhất thông tin Số bản án hoặc Số QĐ THA!");
+        return;
+    }
+
+    currentViewingItem.LichSuAn.push(newAn);
+    saveToLocalCache();
+    renderLichSuAn(currentViewingItem);
+    
+    document.getElementById('new_ba_so').value = "";
+    document.getElementById('new_ba_ngay').value = "";
+    document.getElementById('new_ba_coquan').value = "";
+    document.getElementById('new_qd_so').value = "";
+    document.getElementById('new_qd_ngay').value = "";
+    document.getElementById('new_qd_coquan').value = "";
+    document.getElementById('new_gcn_so').value = "";
+    document.getElementById('new_gcn_ngay').value = "";
+    document.getElementById('new_gcn_coquan').value = "";
+    document.getElementById('new_anphat').value = "";
+});
+
+window.removeAn = function(index) {
+    if(confirm("Bạn có chắc muốn xóa lịch sử lần án này?")) {
+        currentViewingItem.LichSuAn.splice(index, 1);
+        saveToLocalCache();
+        renderLichSuAn(currentViewingItem);
+    }
+};
 
 function renderPhoto(photoData) {
     const container = document.getElementById('photo_container');
@@ -568,7 +726,6 @@ document.getElementById('delete_photo_btn').addEventListener('click', function()
     }
 });
 
-// TỰ ĐỘNG CẬP NHẬT KHI LƯU TRỰC TIẾP TRÊN FORM
 document.getElementById('form_hoten').addEventListener('input', function() { if (!isAddingNewMode && currentViewingItem) { currentViewingItem['Họ tên'] = this.value; saveToLocalCache(); } });
 document.getElementById('form_namsinh').addEventListener('input', function() { if (!isAddingNewMode && currentViewingItem) { currentViewingItem['Năm sinh'] = this.value; saveToLocalCache(); } });
 document.getElementById('form_gioitinh').addEventListener('input', function() { if (!isAddingNewMode && currentViewingItem) { currentViewingItem['Giới tính'] = this.value; saveToLocalCache(); } });
@@ -592,7 +749,6 @@ document.getElementById('back_btn').addEventListener('click', function() {
     renderNameList(globalExcelData);
 });
 
-// HÀM TÌM KIẾM
 function handleSearch() {
     const keyword = document.getElementById('search_input').value.toLowerCase().trim();
     if (keyword === "") { renderNameList(globalExcelData); return; }
@@ -607,7 +763,6 @@ function handleSearch() {
 }
 document.getElementById('search_btn').addEventListener('click', handleSearch);
 
-// CAMERA CHỤP ẢNH
 const cameraModal = document.getElementById('camera_modal');
 const cameraVideo = document.getElementById('camera_video');
 
@@ -637,7 +792,6 @@ document.getElementById('camera_capture_btn').addEventListener('click', function
     closeCameraModal();
 });
 
-// THƯ VIỆN & TÍCH HỢP QUÉT QR CĂN CƯỚC CÔNG DÂN
 function dinhDangNgayThang(chuoiNgay) {
     if (!chuoiNgay) return "";
     let s = chuoiNgay.trim();
@@ -674,7 +828,6 @@ function onScanQrSuccess(decodedText) {
     stopQrScanner();
     const parts = decodedText.split('|');
     
-    // Tự động phân tách dữ liệu chuẩn CCCD
     let scannedObj = {
         'Số CCCD': parts[0] || "",
         'Số CMND cũ': parts[1] || "",
@@ -682,13 +835,13 @@ function onScanQrSuccess(decodedText) {
         'Năm sinh': dinhDangNgayThang(parts[3]),
         'Giới tính': parts[4] || "",
         'Thường trú': parts[5] || "",
-        'Ngày cấp': dinhDangNgayThang(parts[6])
+        'Ngày cấp': dinhDangNgayThang(parts[6]),
+        'LichSuAn': []
     };
 
     const targetCCCD = scannedObj['Số CCCD'];
     const targetName = scannedObj['Họ tên'].toLowerCase().trim();
 
-    // Kiểm tra trùng lặp hồ sơ
     existingDuplicateItem = globalExcelData.find(item => {
         let cccdExist = getColumnValue(item, 'Số CCCD') && getColumnValue(item, 'Số CCCD') === targetCCCD;
         let nameExist = targetName !== "" && getColumnValue(item, 'Họ tên').toLowerCase().trim() === targetName;
@@ -705,7 +858,6 @@ function onScanQrSuccess(decodedText) {
     }
 }
 
-// XỬ LÝ LỰA CHỌN KHI CÓ TRÙNG LẶP HỒ SƠ
 document.getElementById('dup_view_old_btn').addEventListener('click', function() {
     document.getElementById('duplicate_modal').style.display = 'none';
     if (existingDuplicateItem) showDetailForm(existingDuplicateItem, false);
@@ -722,13 +874,13 @@ document.getElementById('dup_cancel_btn').addEventListener('click', function() {
     existingDuplicateItem = null;
 });
 
-// LƯU ĐỐI TƯỢNG MỚI ĐƯỢC TẠO TỪ QUÉT QR
 document.getElementById('submit_new_person_btn').addEventListener('click', function() {
     let newPerson = {};
     newPerson['Họ tên'] = document.getElementById('form_hoten').value;
     newPerson['Năm sinh'] = document.getElementById('form_namsinh').value;
     newPerson['Giới tính'] = document.getElementById('form_gioitinh').value;
     newPerson['Thường trú'] = document.getElementById('form_thuongtru').value;
+    newPerson.LichSuAn = currentViewingItem ? currentViewingItem.LichSuAn : [];
     
     if (currentViewingItem && currentViewingItem['Số CCCD']) {
         newPerson['Số CCCD'] = currentViewingItem['Số CCCD'];
@@ -753,10 +905,21 @@ document.getElementById('submit_new_person_btn').addEventListener('click', funct
     document.getElementById('form_title_mode').textContent = "PHIẾU THÔNG TIN CHI TIẾT ĐỐI TƯỢNG";
 });
 
-// XUẤT FILE EXCEL
 document.getElementById('export_excel_btn').addEventListener('click', function() {
     if (globalExcelData.length === 0) { alert("Chưa có dữ liệu!"); return; }
-    const worksheet = XLSX.utils.json_to_sheet(globalExcelData);
+    
+    const exportData = globalExcelData.map(item => {
+        let clone = {...item};
+        if(clone.LichSuAn && Array.isArray(clone.LichSuAn)) {
+            clone['Lịch sử tiền án chi tiết'] = clone.LichSuAn.map((a, i) => 
+                `[Lần ${i+1}] - Bản án số: ${a.BA_So}, Ngày: ${a.BA_Ngay}, CQ: ${a.BA_CoQuan} | QĐ THA số: ${a.QD_So}, Ngày: ${a.QD_Ngay}, CQ: ${a.QD_CoQuan} | GCN CHX số: ${a.GCN_So}, Ngày: ${a.GCN_Ngay}, CQ: ${a.GCN_CoQuan} | Án phạt: ${a.AnPhat}`
+            ).join(" || ");
+        }
+        delete clone.LichSuAn;
+        return clone;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "HoSoChiTiet");
     XLSX.writeFile(workbook, "Ho_So_Chuyen_Nganh_Export.xlsx");
