@@ -162,7 +162,7 @@
         .btn-save { background-color: var(--police-green); color: white; }
         .btn-cancel { background-color: #e5e7eb; color: #4b5563; }
         
-        #qr_reader_view { width: 100%; background: #000; border-radius: 4px; overflow: hidden; min-height: 280px; }
+        #qr_reader_view { width: 100%; background: #000; border-radius: 4px; overflow: hidden; min-height: 250px; }
         .save-new-btn { background-color: var(--police-gold) !important; color: white !important; font-weight: bold; margin-top: 15px; }
         
         @media (max-width: 900px) {
@@ -246,15 +246,22 @@
 <div class="modal-overlay" id="qr_modal">
     <div class="modal-box" style="max-width: 450px;">
         <h4>Quét QR Căn Cước Công Dân</h4>
-        <p style="font-size: 11px; color: #6b7280; margin-top:-10px; margin-bottom:10px; text-align:center;">Đặt mã QR trên thẻ CCCD vào giữa khung hình bên dưới</p>
+        <p style="font-size: 11px; color: #6b7280; margin-top:-10px; margin-bottom:10px; text-align:center;">Đưa mã QR trên thẻ CCCD vào khung hình hoặc chọn ảnh có sẵn</p>
         <div id="qr_reader_view"></div>
+        
+        <!-- BỔ SUNG TÍNH NĂNG TẢI ẢNH QR TỪ THƯ VIỆN ĐỂ TRÁNH LỖI CAMERA -->
+        <div style="margin-top: 15px; text-align: center; border-top: 1px dashed #d1d5db; padding-top: 12px;">
+            <label style="font-size: 11px; color: var(--police-green); margin-bottom: 6px;">Hoặc tải lên ảnh chụp mã QR CCCD từ điện thoại</label>
+            <input type="file" id="qr_file_input" accept="image/*" style="font-size: 12px; width: 100%;">
+        </div>
+
         <div class="modal-actions" style="margin-top:15px;">
             <button class="modal-btn btn-cancel" id="qr_close_btn">Đóng</button>
         </div>
     </div>
 </div>
 
-<!-- MODAL XEM FILE SCAN GÂN (MỚI - THAY THẾ WINDOW.OPEN) -->
+<!-- MODAL XEM FILE SCAN GÂN -->
 <div class="modal-overlay" id="view_scan_modal">
     <div class="modal-box" style="max-width: 90vw; width: 90vw; height: 85vh; display: flex; flex-direction: column;">
         <h4 id="view_scan_modal_title" style="margin-bottom: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Xem File / Giấy chứng nhận</h4>
@@ -826,7 +833,6 @@ document.getElementById('scan_camera_capture_btn').addEventListener('click', fun
     alert("Đã chụp và lưu file tài liệu thành công!");
 });
 
-// HÀM HIỂN THỊ MODAL XEM FILE SCAN (AN TOÀN CHO ĐIỆN THOẠI)
 function updateScanFileUI(base64Data, fileName) {
     const viewScanModal = document.getElementById('view_scan_modal');
     const viewScanIframe = document.getElementById('view_scan_iframe');
@@ -848,11 +854,10 @@ function updateScanFileUI(base64Data, fileName) {
         };
 
         closeScanModalBtn.onclick = function() {
-            viewScanIframe.src = ""; // Xóa src để giải phóng bộ nhớ
+            viewScanIframe.src = "";
             viewScanModal.style.display = 'none';
         };
 
-        // Đóng modal khi bấm ra ngoài khung trắng
         window.onclick = function(event) {
             if (event.target === viewScanModal) {
                 viewScanIframe.src = "";
@@ -952,7 +957,7 @@ document.getElementById('add_an_btn').addEventListener('click', function() {
 });
 
 window.removeAn = function(index) {
-    if(confirm("Bạn có chắc muốn xóa lịch sử lần án này?")) {
+    if(confirm("BẠN CÓ CHẮC MUỐN XÓA LỊCH SỬ LẦN ÁN NÀY?")) {
         currentViewingItem.LichSuAn.splice(index, 1);
         saveToLocalCache();
         renderLichSuAn(currentViewingItem);
@@ -1059,15 +1064,49 @@ function dinhDangNgayThang(chuoiNgay) {
     return s;
 }
 
+// ==================== CƠ CHẾ QUÉT QR TƯƠNG THÍCH CAO ====================
 document.getElementById('open_qr_modal_btn').addEventListener('click', function() {
     document.getElementById('qr_modal').style.display = 'flex';
     html5QrCodeScanner = new Html5Qrcode("qr_reader_view");
+    
+    const qrConfig = { fps: 30, qrbox: { width: 250, height: 250 } };
+
+    // Dùng chế độ cấu hình linh hoạt không ép buộc lệnh exact quá khắt khe để tránh lỗi trên một số máy
     html5QrCodeScanner.start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
+        qrConfig,
         onScanQrSuccess,
         undefined
-    ).catch(err => { alert("Không thể kích hoạt Camera quét QR!"); stopQrScanner(); });
+    ).catch(err => {
+        console.warn("Không bật được camera sau, chuyển sang camera mặc định:", err);
+        html5QrCodeScanner.start(
+            { facingMode: "user" },
+            qrConfig,
+            onScanQrSuccess,
+            undefined
+        ).catch(e => {
+            console.error("Lỗi khởi động camera quét QR:", e);
+        });
+    });
+});
+
+// Xử lý đọc QR từ file ảnh tải lên (Giải pháp dự phòng hoàn hảo 100%)
+document.getElementById('qr_file_input').addEventListener('change', function(e) {
+    if (e.target.files.length === 0) return;
+    const imageFile = e.target.files[0];
+    
+    if (!html5QrCodeScanner) {
+        html5QrCodeScanner = new Html5Qrcode("qr_reader_view");
+    }
+
+    html5QrCodeScanner.scanFile(imageFile, true)
+    .then(decodedText => {
+        onScanQrSuccess(decodedText);
+    })
+    .catch(err => {
+        alert("Không tìm thấy mã QR hợp lệ trong ảnh này. Vui lòng chọn ảnh chụp rõ góc chứa mã QR của CCCD!");
+        console.error("Lỗi scan file:", err);
+    });
 });
 
 function stopQrScanner() {
@@ -1075,9 +1114,14 @@ function stopQrScanner() {
         html5QrCodeScanner.stop().then(() => {
             html5QrCodeScanner.clear();
             document.getElementById('qr_modal').style.display = 'none';
-        }).catch(() => { document.getElementById('qr_modal').style.display = 'none'; });
+            document.getElementById('qr_file_input').value = "";
+        }).catch(() => { 
+            document.getElementById('qr_modal').style.display = 'none'; 
+            document.getElementById('qr_file_input').value = "";
+        });
     } else {
         document.getElementById('qr_modal').style.display = 'none';
+        document.getElementById('qr_file_input').value = "";
     }
 }
 document.getElementById('qr_close_btn').addEventListener('click', stopQrScanner);
